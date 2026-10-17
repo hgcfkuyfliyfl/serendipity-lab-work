@@ -76,9 +76,22 @@ Status as of the close of the Hour 2 window. Two items still need people, not co
       `dropped_candidate.json`, with `frontend/src/mock/README.md`. Every `source_passage` is verbatim
       from a real paper's abstract, verified against OpenAlex and Europe PMC.
 
-**Still not done, and it is the real blocker:** the ingest job itself. Nothing in this repo fetches a
-corpus, applies the seed and exclusion filters, tags fields, or runs the abstraction batch. Until that
-exists there is no index, no retrieval, and no hero collision.
+**Still not done, and it is the real blocker:** the **abstraction batch job cannot run yet**.
+The corpus exists (3,000 papers) and the baseline index exists, but `abstractions_*` needs
+two things that are not written: Person B's gateway and `prompts/abstractor.md`. Until both
+exist there is no abstraction index, so `retrieve()` has nothing to search and the hero
+collision cannot land.
+
+The pipeline itself is built and verified:
+`data/resolve_subfields.py` → `data/ingest_corpus.py` → `data/abstract_corpus.py` →
+`data/build_index.py`, each resumable, with `requirements.txt` pinning the environment.
+
+**Two remaining items are cheap and should not be skipped:**
+
+1. **`docs/field_qa.md`** — 20 random titles per field, read by hand. 160 reads catches a
+   wrong field tag before 3,000 papers are abstracted with it.
+2. **The 600-paper pilot** before the full run. The LLM provider changed twice inside this
+   window, and abstraction quality is the entire thesis.
 
 ## 4. Pre-registration statement
 

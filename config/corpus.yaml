@@ -1,0 +1,114 @@
+# Serendipity Lab: corpus definition. LOCKED at Hour 2.
+# Changes after lock require a dated entry in `amendments` at the bottom.
+version: 1
+
+size:
+  target_total: 3000            # seeds + classics + random sample, all counted
+  per_field: 375                # 8 fields x 375 = 3000
+  pilot_total: 600              # 75 per field; inspect abstractions by hand before the full run
+  distractor_classics_per_field: 25   # most-cited works with abstracts, so seed papers are not the only "famous" ones
+  random_seed: 42               # OpenAlex `sample` + `seed`; makes the corpus reproducible
+
+source:
+  primary: openalex             # one source = one consistent taxonomy + abstracts + reproducible sampling
+  base_url: https://api.openalex.org
+  api_key_env: OPENALEX_API_KEY # free key; strongly recommended for rate limits
+  filters:
+    has_abstract: true
+    type: article
+    language: en
+    is_retracted: false
+  year_strata:                  # sample within each stratum so seeds (old) and sample (mostly recent) are not distinguishable by era
+    - { years: "1950-1989", weight: 0.10 }
+    - { years: "1990-2004", weight: 0.20 }
+    - { years: "2005-2014", weight: 0.30 }
+    - { years: "2015-2026", weight: 0.40 }
+  abstract_length_chars: { min: 400, max: 3000 }
+  dedupe_on: doi
+  fallbacks:                    # only if OpenAlex lacks a needed abstract
+    - pubmed                    # biology and medicine
+    - arxiv                     # physics, CS, econ
+    - manual_paste              # last resort; record in the seed manifest
+
+seeds_from: config/validation_cases.yaml   # single source of truth for seed papers and excluded outcome papers
+exclude_titles_from: config/validation_cases.yaml   # `excluded_outcome_papers` must never enter the corpus
+
+tagging:
+  method: deterministic_subfield_lookup    # NEVER LLM-based. Home-field exclusion depends on this being reliable.
+  seeds: assigned_by_hand                  # see `field` on each seed in validation_cases.yaml
+  conflict_policy: drop                    # a paper whose subfields map to more than one of our fields is dropped
+  unique_subfield_assertion: true          # no OpenAlex subfield may appear under two of our fields
+  resolve_names_via: "/subfields?search="  # resolve names to IDs on first run; fail loudly on a miss
+  lockfile: config/corpus.lock.yaml        # resolved IDs and counts, written by the ingest script and committed
+  qa:
+    spot_check_per_field: 20               # read 20 random titles per field before the full abstraction run
+    log_to: docs/field_qa.md
+
+# Eight fields. Chosen as the union of every home and source field in validation_cases.yaml.
+# `optional: true` subfields are used if OpenAlex has them; the resolver warns and continues if not.
+fields:
+  - id: robotics_mech_eng
+    name: Robotics & Mechanical Engineering
+    openalex_subfields:
+      - { name: "Control and Systems Engineering" }
+      - { name: "Mechanical Engineering" }
+
+  - id: soft_matter_stat_physics
+    name: Soft-Matter & Statistical Physics
+    openalex_subfields:
+      - { name: "Statistical and Nonlinear Physics" }
+      - { name: "Condensed Matter Physics" }
+
+  - id: organismal_bio_ecology
+    name: Organismal Biology & Ecology
+    openalex_subfields:
+      - { name: "Ecology, Evolution, Behavior and Systematics" }
+      - { name: "Animal Science and Zoology" }
+
+  - id: medicine_clinical
+    name: Medicine & Clinical Research
+    openalex_subfields:
+      - { name: "Internal Medicine" }
+      - { name: "Surgery" }
+      - { name: "Nephrology", optional: true }
+
+  - id: economics_game_theory
+    name: Economics & Game Theory
+    openalex_subfields:
+      - { name: "Economics and Econometrics" }
+
+  - id: civil_transport_arch
+    name: Civil, Transport & Architectural Engineering
+    openalex_subfields:
+      - { name: "Civil and Structural Engineering" }
+      - { name: "Transportation", optional: true }
+      - { name: "Building and Construction", optional: true }
+
+  - id: cs_optimization
+    name: Computer Science & Optimization
+    openalex_subfields:
+      - { name: "Artificial Intelligence" }
+      - { name: "Computer Networks and Communications" }
+      - { name: "Management Science and Operations Research" }
+      - { name: "Computational Theory and Mathematics", optional: true }
+
+  - id: materials_fluids_aero
+    name: Materials, Fluids & Aerospace Engineering
+    openalex_subfields:
+      - { name: "Aerospace Engineering" }
+      - { name: "Mechanics of Materials" }
+      - { name: "Surfaces, Coatings and Films", optional: true }
+      - { name: "Fluid Flow and Transfer Processes", optional: true }
+
+selection_order_per_field:       # fill the 375 slots in this order
+  1: seeds                       # all seed papers assigned to this field
+  2: distractor_classics         # top-cited works in the field's subfields
+  3: stratified_random_sample    # remainder, by year_strata
+
+known_biases:                    # state these in the methodology slide notes
+  - "Corpus is small and curated (3,000 papers, 8 fields), not a survey of science."
+  - "Seeds were chosen by us because they are the known sources of the cases we test."
+  - "Biology is the source field in half of the validation cases."
+  - "Subfield-based tagging is coarse; a paper can sit in the 'wrong' field for a human reader."
+
+amendments: []                   # {date, change, reason}

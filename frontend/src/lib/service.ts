@@ -13,7 +13,7 @@ import {
 import { LEVELS } from "./serendipity";
 import type { Candidate, CollisionInput, Field, Run, TraceEvent } from "./types";
 
-export const STEP_MS = 650;
+export const STEP_MS = 1900;
 
 /** Pure: which candidates survive home/adjacent exclusion and rank depth. */
 export function selectCandidates(homeFields: Field[], excludedAdjacent: number, rankDepth: number) {
@@ -123,3 +123,80 @@ export const getCandidate = (id: string) => CANDIDATES.find((c) => c.id === id);
 export const getResults = (run: Run) =>
   run.resultIds.map((id) => getCandidate(id)!).filter(Boolean);
 export const getValidationCases = () => VALIDATION_CASES;
+
+export type ActivityKind = "search" | "open" | "read" | "infer" | "objection" | "dropped" | "kept";
+export interface Activity {
+  kind: ActivityKind;
+  text: string;
+}
+const a = (kind: ActivityKind, text: string): Activity => ({ kind, text });
+
+/** Simulated activity feed, one list per trace step. Built from the same fixtures as the results. */
+export function activityFor(run: Run): Activity[][] {
+  const kept = getResults(run);
+  const top = kept.slice(0, 3);
+  const words = run.input.text.trim().split(/\s+/).length;
+  const home = run.input.homeFields.join(", ");
+  return [
+    [
+      a("infer", `Reading your problem (${words} words)`),
+      a(
+        "infer",
+        "Dropping domain nouns. Keeping the shape: many agents, local signals, sudden failures",
+      ),
+      a("infer", `Functional problem: ${HERO_ABSTRACTION.functional_problem}`),
+    ],
+    DECOMPOSITION.map((d) => a("infer", `Sub-problem: ${d}`)),
+    [
+      a("search", `Searching the demo structure index. Home field excluded: ${home}`),
+      a(
+        "search",
+        `Skimming demo abstracts from ${[...new Set(kept.map((c) => c.field))].join(", ")}`,
+      ),
+      ...top.flatMap((c) => [
+        a("open", `Opened "${c.title}" (${c.field}, illustrative record)`),
+        a(
+          "read",
+          c.source.passage
+            ? `Passage: "${c.source.passage.slice(0, 120)}..."`
+            : "No quotable passage found in this record",
+        ),
+        a(
+          "infer",
+          c.source.passage
+            ? `Same shape as your problem: ${c.mapping[0]?.source ?? "local signal"} plays the role of ${c.mapping[0]?.home ?? "a route cost"}`
+            : "Cannot confirm the match without a passage. Marking evidence as incomplete",
+        ),
+      ]),
+      ...(kept.length > 1
+        ? [
+            a(
+              "infer",
+              `Sources disagree: "${kept[0]?.title}" assumes identical agents, "${kept[kept.length - 1]?.title}" assumes agents that react to incentives`,
+            ),
+          ]
+        : []),
+    ],
+    [
+      ...kept.flatMap((c) => {
+        const f = c.reviewer.failure[0];
+        return f ? [a("objection", `Against "${c.title}": ${f}`)] : [];
+      }),
+      ...run.rejected.map((r) =>
+        a("dropped", `"${getCandidate(r.id)?.title ?? r.id}": ${r.reason}`),
+      ),
+    ],
+    [
+      a("infer", "Two objections hit the same weak point: no central controller in the source"),
+      a("search", "Re-querying with that constraint made explicit (loop 1 of 2)"),
+      a("infer", "Enough candidates kept. Loop 2 not needed"),
+    ],
+    kept.slice(0, 4).map((c) => a("kept", `${c.title}: demo score ${c.mockScore}`)),
+    [
+      a("search", "Looking for the same idea already tried in the home field (demo fixtures)"),
+      ...top.map((c) => a("search", `${c.title}: ${c.priorArtNote}`)),
+    ],
+    top.map((c) => a("infer", `Mapping "${c.title}" back into ${home} language`)),
+    [a("infer", "Attaching passages, mapping tables and reviewer notes to each result")],
+  ];
+}

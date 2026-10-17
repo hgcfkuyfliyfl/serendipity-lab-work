@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, RefreshCw, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { btn, MockTag, PageHeader } from "@/components/lab";
-import { TraceList, TraceMini } from "@/components/trace";
+import { LiveFeed, TraceList, TraceMini } from "@/components/trace";
 import { getCandidate } from "@/lib/service";
 import { actions, useStore } from "@/lib/store";
 
@@ -31,12 +31,13 @@ function TracePage() {
         title="What the agent did"
         aside={<MockTag>Simulated workflow</MockTag>}
       >
-        Nine steps run in a fixed order, so the demo is the same every time. Refinement is capped at
-        two loops.
+        Nine steps run in a fixed order, so the demo is the same every time. The feed shows what it
+        opens, reads and objects to. Refinement is capped at two loops.
       </PageHeader>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-live="polite">
+          <LiveFeed run={run} />
           <TraceList run={run} />
           {failed && (
             <div

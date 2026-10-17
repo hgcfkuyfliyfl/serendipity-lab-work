@@ -1,7 +1,8 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import {
   Bookmark,
   Compass,
+  LogOut,
   FlaskConical,
   GitCompare,
   ListTree,
@@ -13,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/lab";
 import { Toaster } from "@/components/ui/sonner";
+import { auth, useUser } from "@/lib/auth";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +33,26 @@ const NAV = [
 function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const user = useUser();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (user === null) navigate({ to: "/signin" });
+  }, [user, navigate]);
   const savedCount = useStore((s) => s.saved.length);
   const reduce = useStore((s) => s.reduceMotion);
   const running = useStore((s) => s.run?.status === "running");
   useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", reduce);
   }, [reduce]);
+
+  if (!user) return null;
+  const initials = user.name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="flex min-h-screen w-full">
@@ -106,12 +122,39 @@ function AppLayout() {
           <span className="eyebrow">Workspace</span>
           <div className="ml-auto flex items-center gap-3 text-sm">
             <span className="mock-tag">Demo data</span>
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-mono text-xs text-primary-foreground"
-              aria-label="Guest researcher"
-            >
-              GR
-            </span>
+            <div className="relative">
+              <button
+                onClick={() => setMenu((m) => !m)}
+                aria-expanded={menu}
+                aria-label="Account menu"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-mono text-xs text-primary-foreground"
+              >
+                {initials}
+              </button>
+              {menu && (
+                <div className="absolute right-0 top-10 z-30 w-56 rounded-lg border border-border bg-card p-2 shadow-lg">
+                  <p className="px-2 pt-1 text-sm font-medium">{user.name}</p>
+                  <p className="truncate px-2 pb-2 text-xs text-muted-foreground">{user.email}</p>
+                  <Link
+                    to="/app/settings"
+                    onClick={() => setMenu(false)}
+                    className="block rounded px-2 py-1.5 text-sm hover:bg-secondary"
+                  >
+                    Settings
+                  </Link>
+                  <button
+                    onClick={() => {
+                      auth.signOut();
+                      navigate({ to: "/" });
+                    }}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-secondary"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-8">

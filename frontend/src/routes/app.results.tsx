@@ -257,7 +257,7 @@ function Results() {
           </ul>
           <aside
             aria-label="Live map"
-            className="h-fit rounded-lg bg-ink p-4 text-ink-foreground lg:sticky lg:top-6"
+            className="h-fit rounded-lg bg-ink p-4 text-ink-foreground lg:sticky lg:top-20"
           >
             <h2 className="text-sm font-medium">Live map</h2>
             <p className="text-xs text-ink-muted">

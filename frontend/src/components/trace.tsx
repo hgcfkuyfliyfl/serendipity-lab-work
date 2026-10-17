@@ -1,4 +1,7 @@
+import gsap from "gsap";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Circle, Loader2, MinusCircle } from "lucide-react";
+import { activityFor, type ActivityKind } from "@/lib/service";
 import { cn } from "@/lib/utils";
 import type { Run, TraceEvent, TraceState } from "@/lib/types";
 
@@ -80,6 +83,79 @@ export function TraceMini({ run }: { run: Run }) {
           className="h-1 rounded-full bg-primary transition-[width]"
           style={{ width: `${(done / run.trace.length) * 100}%` }}
         />
+      </div>
+    </div>
+  );
+}
+
+const KIND: Record<ActivityKind, string> = {
+  search: "SEARCH",
+  open: "OPEN",
+  read: "READ",
+  infer: "INFER",
+  objection: "OBJECTION",
+  dropped: "DROPPED",
+  kept: "KEPT",
+};
+
+/** Terminal-style feed of what the agent is doing. Simulated, built from the demo fixtures. */
+export function LiveFeed({ run }: { run: Run }) {
+  const box = useRef<HTMLDivElement>(null);
+  const steps = activityFor(run);
+  const runIdx = run.trace.findIndex((e) => e.state === "running");
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    setN(0);
+    if (runIdx < 0) return;
+    const len = steps[runIdx]?.length ?? 0;
+    const t = setInterval(() => setN((v) => Math.min(v + 1, len)), 1500 / Math.max(len, 1));
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runIdx, run.id]);
+
+  const lines = steps.flatMap((list, i) => {
+    const st = run.trace[i]?.state;
+    if (st === "completed") return list.map((l) => ({ ...l, i }));
+    if (st === "running") return list.slice(0, n).map((l) => ({ ...l, i }));
+    return [];
+  });
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const last = el.lastElementChild;
+    if (last) gsap.from(last, { autoAlpha: 0, x: -8, duration: 0.3 });
+  }, [lines.length]);
+
+  return (
+    <div className="mb-8 overflow-hidden rounded-xl bg-ink text-ink-foreground">
+      <div className="flex items-center justify-between border-b border-ink-line px-4 py-2 text-xs text-ink-muted">
+        <span>Live activity (simulated)</span>
+        <span>{run.status === "running" ? "working..." : "finished"}</span>
+      </div>
+      <div
+        ref={box}
+        className="max-h-80 space-y-1.5 overflow-y-auto p-4 font-mono text-xs leading-relaxed"
+        role="log"
+        aria-live="polite"
+      >
+        {lines.map((l, k) => (
+          <p key={k} className="grid grid-cols-[5.5rem_1fr] gap-2">
+            <span
+              className={cn(
+                "text-ink-muted",
+                l.kind === "objection" && "text-ochre",
+                l.kind === "dropped" && "text-terracotta",
+              )}
+            >
+              {KIND[l.kind]}
+            </span>
+            <span>{l.text}</span>
+          </p>
+        ))}
+        {run.status === "running" && <p className="animate-pulse text-ink-muted">...</p>}
       </div>
     </div>
   );

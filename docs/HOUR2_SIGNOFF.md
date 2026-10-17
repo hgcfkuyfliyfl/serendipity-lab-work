@@ -89,3 +89,53 @@ Operational note: the DeepSeek account was at zero balance when this was written
 `Insufficient Balance` until it is topped up. Anthropic's monthly credits have no equivalent — DeepSeek is
 prepaid. At ~750k output tokens for the full 3k-paper run this costs on the order of $1-2, so a small
 top-up covers the whole project.
+
+---
+
+## 7. Second amendment: DeepSeek to Gemini
+
+A1 above is superseded by:
+
+| # | Supersedes | Decision | Why |
+|---|---|---|---|
+| A2 | A1, D11 | **LLM provider = Google Gemini**, `gemini-3.8-flash` on all four tasks. `llm.base_url = https://generativelanguage.googleapis.com/v1beta`, `llm.api_key_env = GEMINI_API_KEY`, **thinking budget 0**. **Concurrency 8 -> 2.** | DeepSeek is prepaid and the account was unfunded, so every call failed. Moved to the Gemini free tier. |
+
+The model was chosen from this account's **live catalogue**, not from memory, and that mattered:
+
+- `gemini-2.5-pro` and `gemini-2.5-flash` are **retired for new accounts**. They return HTTP 404 with a
+  message pointing at `gemini-3.8-flash`. Guessing from memory would have produced a 404 at Hour 6.
+- `gemini-3.1-pro-preview` rate-limited (429) immediately and is a **preview** model, so it must not be in a
+  demo: it can be withdrawn mid-pitch.
+- `gemini-3.8-flash` is GA, and measured clean on the hero input at thinkingBudget 0: 2.6-5.9s, no thought
+  parts, schema-valid JSON.
+
+Measured facts that now constrain the build:
+
+1. **Free-tier rate limits, not tokens, are the binding constraint.** At concurrency 8 the account returned
+   429 then 503 after one to three rapid calls. Concurrency is now 2. The retry policy and the resumable
+   cache are what make the 3k-paper batch survivable, so they are correctness features here, not extras.
+2. **`responseSchema` rejects two things our own schemas use.** It 400s on `additionalProperties` and on
+   union types such as `["string", "null"]`. The gateway must translate to Gemini's proto-flavoured schema
+   and drop those keywords, then validate against the **full untranslated** schema afterwards. See gateway
+   rules 14-16.
+3. **A nullable field must not be sent as a required string.** D14 makes `mechanism` nullable for user
+   input. Sent as a required `STRING`, the model invented one ("Micro- and nanostructures...") for a
+   problem that proposed no approach. Leave it out of `required` for user-input calls.
+
+And the one finding that matters most for the thesis:
+
+4. **The abstractor will name the answer if allowed to.** With a loose prompt, the hero input came back with
+   `domain_tags: ['robotics', 'soft_actuation', 'granular_jamming', 'mechanical_design']` and a `mechanism`
+   reading "a flexible enclosure filled with granular material". That puts the correct collision directly
+   into the query, so retrieval finds the jamming papers no matter what the index contains. It would look
+   like a successful demo and it would be worthless — and it would invalidate the `jamming_gripper` case.
+
+   This is fixable and was verified fixed: with a prompt that names the field meanings and forbids naming a
+   solution, the same input produced "Envelop and securely retain items of unpredictable geometry..." and a
+   mechanism of "A phase-like or state-changing transformation within a conformable medium" — abstract, and
+   no leak. So the few-shot work at Hours 4-6 is not a quality nicety here, it is the thing standing between
+   a real result and a rigged one. Gateway rule 17 adds a leak check so a leak fails the call instead of
+   being cached.
+
+No validation re-run is owed for either provider change: `validation_cases.yaml` requires one after any model
+change, and no case has been run yet. That window is now open a second time and worth protecting.

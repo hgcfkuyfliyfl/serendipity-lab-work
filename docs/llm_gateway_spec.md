@@ -74,16 +74,43 @@ class LLMGateway:
 9. **Structured output:** prefer the provider's tool-use / structured-output mechanism with the schema. Still validate afterward.
 10. **Provider isolation:** all Anthropic-specific code lives in one adapter class. Swapping provider means changing `models.yaml` and one file.
 11. **Counters:** log cache hits, misses, retries, and token usage per task. One summary line at the end of a batch.
-12. **Thinking mode off, always.** Provider is DeepSeek (`config/models.yaml: llm.provider`), which enables
-    thinking mode by default at effort `high`. The gateway must send the toggle on **every** request, read
-    from `llm.thinking.mode`. Wire it per format:
-    `{"thinking": {"type": "disabled"}}` (OpenAI format) or `{"reasoning": {"effort": "none"}}` (Anthropic format).
-    With thinking left on, DeepSeek **silently ignores `temperature`** — the `temperature: 0` in
-    `models.yaml` becomes a no-op and the validation table stops being reproducible. It also emits a chain of
-    thought that will not fit the 20s hero budget. A request that returns a populated `reasoning_content`
-    field means the toggle is not being sent: treat that as a bug, not a warning.
-13. **Reasoning output is not content.** If `reasoning_content` appears anyway, do not concatenate it into
-    the next turn and never let it reach the schema validator. Only `content` is parsed.
+12. **Thinking budget 0 on every request.** Provider is Gemini (`config/models.yaml: llm.provider`), which
+    thinks by default. Send `generationConfig.thinkingConfig.thinkingBudget = 0` on **every** request, read
+    from `llm.thinking.budget`. Verified at 0: no thought parts, hero input in 2.6-5.9s. Thinking left on
+    does not fit the 20s hero budget.
+13. **Reasoning output is not content.** Gemini returns thinking as parts flagged `thought: true`, alongside
+    the real parts. Only non-thought parts are parsed. Never concatenate thought parts into the context and
+    never let them reach the schema validator.
+14. **`responseSchema` cannot express our schemas. Translate, then validate.** Gemini's `responseSchema` is
+    proto-flavoured, not JSON Schema, and it **rejects with HTTP 400** two things our schema files use:
+    `additionalProperties` and union types like `["string", "null"]`. Verified against the real
+    `config/schemas/abstraction.schema.json`. So:
+    - Uppercase the types: `string`->`STRING`, `object`->`OBJECT`, `array`->`ARRAY`.
+    - **Drop `additionalProperties`, `minLength`, `maxLength`, `minItems`, `maxItems`.** They are accepted
+      but not enforced; enforcement is the post-validation step below.
+    - **Drop any union type.** Do not fake a nullable field as a required string. See rule 15.
+    - Keep `propertyOrdering`. It makes the abstraction legible to a human auditor.
+15. **Nullable fields: omit from `required`, and trust the prompt — not the schema.** D14 makes `mechanism`
+    nullable for user input. If it is sent as a required `STRING`, the model **invents one** rather than
+    returning null (verified: given a gecko input it produced "Micro- and nanostructures..." for a problem
+    that proposes no approach). So for user-input calls leave `mechanism` out of `required`, and let the
+    prompt state that it may be null. Corpus papers keep `mechanism` required, and the batch job retries on
+    null, which is the existing rule.
+16. **Always validate after.** Post-validate every response against the **full, untranslated**
+    `config/schemas/*.schema.json`. That is the only place `minLength`, `maxLength` and nullability are
+    actually enforced, and it is what the cache stores.
+17. **Abstraction leak check — treat a leak as a validation failure.** The model will happily name the
+    answer. Measured on the hero input: a loose prompt produced `domain_tags: ['granular_jamming', ...]`
+    and a `mechanism` saying "granular material" — which puts the correct collision in the query and
+    makes retrieval trivially self-fulfilling. That is not a discovery, it is a leak, and it invalidates
+    the validation case. Add a check in `run_many` and the live path: `functional_problem` and `mechanism`
+    must not contain any token from a supplied `banned_solution_terms` list. Fail the call, do not cache it.
+    With a strict prompt the same input produced no leak ("A phase-like or state-changing transformation
+    within a conformable medium"), so this is a guard rail, not a reason to distrust the model.
+18. **Rate limits are the real constraint, not tokens.** Free tier returned 429 then 503 after 1-3 rapid
+    calls. Retries and the resumable cache are what make the 3k batch survivable, so treat both as
+    correctness features rather than nice-to-haves, and measure the actual quota before raising
+    `llm.concurrency`.
 
 ## Trace events
 

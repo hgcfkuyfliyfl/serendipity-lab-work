@@ -52,8 +52,8 @@ function TracePage() {
           )}
           {run.cachedFallback && done && (
             <p className="mt-4 text-sm text-muted-foreground">
-              Your text is not one of the prepared scenarios, so the agent showed the cached
-              traffic-routing results as a fallback.
+              The abstraction of your text is live (Gemini). The ranked candidates are still the
+              cached demo set, because no real corpus is connected yet.
             </p>
           )}
         </section>

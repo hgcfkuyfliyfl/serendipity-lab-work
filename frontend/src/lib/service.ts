@@ -142,11 +142,21 @@ export function activityFor(run: Run): Activity[][] {
       a("infer", `Reading your problem (${words} words)`),
       a(
         "infer",
-        "Dropping domain nouns. Keeping the shape: many agents, local signals, sudden failures",
+        run.abstraction && run.cachedFallback
+          ? `Dropping domain nouns. Mechanism in neutral terms: ${run.abstraction.mechanism}`
+          : "Dropping domain nouns. Keeping the shape: many agents, local signals, sudden failures",
       ),
-      a("infer", `Functional problem: ${HERO_ABSTRACTION.functional_problem}`),
+      a("infer", `Functional problem: ${(run.abstraction ?? HERO_ABSTRACTION).functional_problem}`),
+      a(
+        "infer",
+        run.abstraction
+          ? "Abstraction written by Gemini through the server (live call)"
+          : (run.abstractionNote ?? "Waiting for the abstraction..."),
+      ),
     ],
-    DECOMPOSITION.map((d) => a("infer", `Sub-problem: ${d}`)),
+    run.abstraction && run.cachedFallback
+      ? run.abstraction.constraints.map((c) => a("infer", `Constraint to respect: ${c}`))
+      : DECOMPOSITION.map((d) => a("infer", `Sub-problem: ${d}`)),
     [
       a("search", `Searching the demo structure index. Home field excluded: ${home}`),
       a(

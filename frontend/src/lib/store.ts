@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { HERO_TEXT } from "./mock-data";
 import { LEVELS } from "./serendipity";
+import { abstractProblem } from "./gemini.functions";
 import { advanceRun, getDemoRun, startCollisionRun, STEP_MS } from "./service";
 import type { CollisionInput, Run } from "./types";
 
@@ -68,7 +69,30 @@ export const actions = {
   run: (input: CollisionInput) => {
     stop();
     const fail = state.simulateFailure;
-    set({ run: advanceRun(startCollisionRun(input)) });
+    const started = advanceRun(startCollisionRun(input));
+    set({ run: started });
+    abstractProblem({ data: { text: input.text } })
+      .then((r) => {
+        if (!state.run || state.run.id !== started.id) return;
+        const run = state.run;
+        if (r.ok) {
+          const trace = run.trace.map((e, i) =>
+            i === 0
+              ? {
+                  ...e,
+                  message: `Removed domain vocabulary → "${r.abstraction.functional_problem}"`,
+                }
+              : e,
+          );
+          set({
+            run: { ...run, trace, abstraction: r.abstraction, abstractionNote: "Gemini (live)" },
+          });
+        } else set({ run: { ...run, abstractionNote: `Cached example (${r.reason})` } });
+      })
+      .catch(() => {
+        if (state.run?.id === started.id)
+          set({ run: { ...state.run, abstractionNote: "Cached example (Gemini unreachable)" } });
+      });
     timer = setInterval(() => {
       if (!state.run) return;
       let next = advanceRun(state.run);

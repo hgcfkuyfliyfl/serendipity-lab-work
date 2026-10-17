@@ -49,6 +49,8 @@ function Discover() {
     });
     toast("Demo scenario loaded: traffic routing");
   };
+  const live = run?.abstraction && run.input.text === text ? run.abstraction : null;
+  const shownAbs = live ?? (text === HERO_TEXT ? HERO_ABSTRACTION : null);
   const isHero = text === HERO_TEXT;
 
   return (
@@ -211,24 +213,21 @@ function Discover() {
         <aside className="space-y-8 lg:border-l lg:border-border lg:pl-8">
           <section>
             <p className="eyebrow">
-              Structural abstraction <MockTag>Cached</MockTag>
+              Structural abstraction <MockTag>{live ? "Gemini live" : "Cached"}</MockTag>
             </p>
-            {isHero ? (
+            {shownAbs ? (
               <div className="mt-3 text-sm">
-                <p className="font-serif text-lg leading-snug">
-                  {HERO_ABSTRACTION.functional_problem}
-                </p>
-                <p className="mt-3 text-muted-foreground">{HERO_ABSTRACTION.mechanism}</p>
+                <p className="font-serif text-lg leading-snug">{shownAbs.functional_problem}</p>
+                <p className="mt-3 text-muted-foreground">{shownAbs.mechanism}</p>
                 <ul className="mt-3 list-disc space-y-1 pl-4 text-muted-foreground">
-                  {HERO_ABSTRACTION.constraints.map((c) => (
+                  {shownAbs.constraints.map((c) => (
                     <li key={c}>{c}</li>
                   ))}
                 </ul>
               </div>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
-                The abstraction for custom text is produced when you run it. This prototype shows
-                the cached example.
+                Run it and Gemini writes the abstraction for your text.
               </p>
             )}
           </section>

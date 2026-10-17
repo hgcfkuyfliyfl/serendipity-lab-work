@@ -78,6 +78,9 @@ export interface Run {
   resultIds: string[];
   rejected: { id: string; reason: string }[];
   cachedFallback: boolean;
+  /** Set when the structural abstraction came back from Gemini */
+  abstraction?: Abstraction;
+  abstractionNote?: string;
 }
 
 export interface ValidationCase {

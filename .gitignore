@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.next/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Data & index artifacts (regenerate via the batch job, don't commit)
+data/cache/
+data/index/
+data/corpus/
+*.npy
+*.faiss
+chroma/
+!data/README.md
+
+# LLM cache & secrets
+.cache/
+.env
+.env.*
+!.env.example
+secrets/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+logs/

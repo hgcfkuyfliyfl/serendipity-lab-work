@@ -1,0 +1,117 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-serif: "Fraunces", "Source Serif 4", Georgia, serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-forest: var(--forest);
+  --color-terracotta: var(--terracotta);
+  --color-ochre: var(--ochre);
+  --color-sage: var(--sage);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-line: var(--ink-line);
+}
+
+:root {
+  --radius: 0.4rem;
+  --background: oklch(0.963 0.011 85);      /* ivory #F6F3EC */
+  --foreground: oklch(0.28 0.02 175);       /* ink #202D2B */
+  --card: oklch(0.996 0.006 95);            /* #FFFEFA */
+  --card-foreground: oklch(0.28 0.02 175);
+  --popover: oklch(0.996 0.006 95);
+  --popover-foreground: oklch(0.28 0.02 175);
+  --primary: oklch(0.39 0.06 182);          /* teal #164E48 */
+  --primary-foreground: oklch(0.98 0.01 95);
+  --secondary: oklch(0.92 0.012 95);        /* stone #EAE7DE */
+  --secondary-foreground: oklch(0.28 0.02 175);
+  --muted: oklch(0.92 0.012 95);
+  --muted-foreground: oklch(0.52 0.015 165); /* slate #65716C */
+  --accent: oklch(0.93 0.018 145);          /* sage #E5EDE4 */
+  --accent-foreground: oklch(0.39 0.06 182);
+  --destructive: oklch(0.6 0.12 40);        /* terracotta */
+  --destructive-foreground: oklch(0.98 0.01 95);
+  --border: oklch(0.88 0.012 100);          /* #D9D8CE */
+  --input: oklch(0.88 0.012 100);
+  --ring: oklch(0.39 0.06 182);
+  --forest: oklch(0.53 0.06 145);           /* #547A59 */
+  --terracotta: oklch(0.62 0.12 42);        /* #C36D4C */
+  --ochre: oklch(0.7 0.11 80);              /* #C49A48 */
+  --sage: oklch(0.93 0.018 145);
+  --ink: oklch(0.3 0.04 185);               /* dark teal surface */
+  --ink-foreground: oklch(0.95 0.012 95);
+  --ink-muted: oklch(0.72 0.03 170);
+  --ink-line: oklch(0.42 0.04 185);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--font-serif); font-weight: 450; letter-spacing: -0.01em; }
+  :focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+}
+
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+@utility mock-tag {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-terracotta);
+  border: 1px dashed color-mix(in oklab, var(--color-terracotta) 55%, transparent);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+@utility evidence {
+  background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-ochre) 7%, var(--color-card)) 0 8px, var(--color-card) 8px 16px);
+  border-left: 3px solid var(--color-ochre);
+}
+
+@keyframes draw { from { stroke-dashoffset: 400; } to { stroke-dashoffset: 0; } }
+@utility animate-draw { stroke-dasharray: 400; animation: draw 1.1s ease-out both; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@utility animate-fade-up { animation: fade-up 0.4s ease-out both; }
+
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation: none !important; transition: none !important; }

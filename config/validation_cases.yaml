@@ -2,7 +2,7 @@
 # Written before any case has been run. After lock, edit only by appending to `amendments`.
 # Record the git commit hash of this lock in `locked_at_commit`.
 version: 1
-locked_at_commit: null
+locked_at_commit: d561ca9966b2919a0966e162146aeee6c2dd5466
 
 # ---------------------------------------------------------------------------
 # Protocol

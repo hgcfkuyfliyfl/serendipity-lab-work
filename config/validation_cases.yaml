@@ -307,3 +307,16 @@ amendments:
     Deneubourg 1990, Goss 1989 and Beckers 1992 carry no abstract in OpenAlex, Europe PMC or arXiv. Dropping
     it keeps the gate at 5 cases. No input_text, acceptable_sources, metric, baseline or reporting rule
     was altered. No case has been run, so the protocol is still untuned.'
+- date: '2026-10-17'
+  change: Second amendment. Added excluded_outcome_papers_dropped, retaining Dorigo 1996 for corpus exclusion.
+  reason: Dropping ant_colony_routing removed its excluded_outcome_papers from the file, which silently
+    un-excluded Dorigo 1996 from the corpus. The corpus must not contain a breakthrough paper just because
+    its validation case was dropped. No case, input_text, acceptable_sources, metric, baseline or reporting
+    rule was changed.
+excluded_outcome_papers_dropped:
+- title: 'Ant system: optimization by a colony of cooperating agents'
+  first_author: Dorigo
+  year: 1996
+  venue: IEEE Transactions on Systems, Man, and Cybernetics, Part B
+  reason: outcome paper of ant_colony_routing, dropped at the Hour 2 seed gate. Retained here so the corpus
+    still excludes it; dropping the case must not silently un-exclude a breakthrough paper.

@@ -1,0 +1,21 @@
+{
+  "_comment": "Debug-only. A candidate the drop rule removed. It must NEVER be rendered as a result: config/models.yaml retrieval.drop_rule is 'no source_passage AND no mapping => dropped, never shown'. Shown so A can build the debug/no-inspector state, not the result card.",
+  "candidate": {
+    "id": "c7",
+    "title": "Compliance and hysteresis in layered soft solids",
+    "source_field": "materials_fluids_aero",
+    "structural_score": 0.58,
+    "matched_on": "problem",
+    "heresy": "low",
+    "hypothesis": "None. Translator could not produce a grounded passage.",
+    "source_passage": null,
+    "mapping": [],
+    "reviewer_note": null,
+    "dropped": true,
+    "drop_reason": "translator returned no source_passage and no mapping"
+  },
+  "trace_context": {
+    "step": "llm_retry",
+    "attempt": 1
+  }
+}

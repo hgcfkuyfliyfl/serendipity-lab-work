@@ -30,19 +30,55 @@ Everything that needed a decision has one. What remains is verification that nee
 - **Tero et al. 2010 and the Roth–Sönmez–Ünver kidney papers are excluded for the same reason.**
 - **Shark-skin riblets and termite mounds were dropped.** The source-side literature with retrievable abstracts was too thin. Gecko adhesion replaced shark skin.
 
-## 3. Hour 2 gate: what is NOT done, because it needs a network and people
+## 3. Hour 2 gate
 
-I could write and decide everything above. I could not reach OpenAlex, arXiv, or PubMed from here, so nothing about paper availability is verified. Seed `status` is `unverified` for all 20 seeds.
+Status as of the close of the Hour 2 window. Two items still need people, not code.
 
-- [ ] **Huddle (15 min, all three):** agree the cut list with B as enforcer. Hand A the §9 schema and mock data, and hand B `docs/llm_gateway_spec.md`.
-- [ ] **Get keys:** ~~`ANTHROPIC_API_KEY`~~ **done — `GEMINI_API_KEY` obtained and verified with a live
-      call.** `OPENALEX_API_KEY` obtained. Both live in a gitignored `.env`; see `.env.example`.
-      (The LLM provider moved Anthropic -> DeepSeek -> Gemini; see §6 and §7.)
-- [ ] **Resolve subfields (≈5 min):** run the ingest resolver against `config/corpus.yaml`. Any non-optional name that fails to resolve needs fixing. Commit `config/corpus.lock.yaml`.
-- [ ] **Verify seed abstracts (≈15 min):** for each of the 20 seeds, confirm an abstract is retrievable (OpenAlex, then PubMed or arXiv, then `manual_paste`). Update `status`. A case with fewer than 2 verified acceptable sources is dropped. At least 5 cases must survive. Kidney exchange and ant colony are the likeliest to fail.
-- [ ] **Input-language check (≈5 min):** have A or B read each `input_text` cold and flag any word that gives away the source field. Set `input_language_check.status`.
-- [ ] **Commit** and put the hash in `validation_cases.yaml: locked_at_commit`.
-- [ ] **Slide 3 skeleton** from `hero_scenario.md`.
+- [ ] **Huddle (15 min, all three).** Agenda and hand-off contents ready in
+      **`docs/huddle.md`** so the 15 minutes is spent deciding rather than reading. Needs the three
+      people in a room.
+- [x] **Get keys.** `GEMINI_API_KEY` obtained and verified with a live `generateContent` call.
+      `OPENALEX_API_KEY` obtained and verified with live OpenAlex queries. Both live in a gitignored
+      `.env`; see `.env.example`. (The LLM provider moved Anthropic → DeepSeek → Gemini; see §6–7.)
+- [x] **Resolve subfields.** `data/resolve_subfields.py` run against `config/corpus.yaml`.
+      **All 21 subfield names resolved exactly** across 8 fields, 0 unresolved, no collisions against
+      `unique_subfield_assertion`. `config/corpus.lock.yaml` committed. Re-check with
+      `python3 data/resolve_subfields.py --check`.
+- [x] **Verify seed abstracts.** `data/verify_seeds.py` run. OpenAlex, then Europe PMC and arXiv per
+      `corpus.yaml source.fallbacks`. **5 of 6 cases survive; the gate minimum is 5, so it passes.**
+
+      | Case | Verified | Note |
+      |---|---|---|
+      | `jamming_gripper` | 3/4 | Trappe 2001 recovered from Europe PMC |
+      | `gecko_adhesive` | 3/3 | Autumn 2000 recovered from Europe PMC |
+      | `kidney_exchange` | 2/4 | exactly at threshold; Shapley and Gale need `manual_paste` |
+      | `physarum_network` | 2/3 | Tero 2007 recovered; OpenAlex alone left this at 1/3 |
+      | `simulated_annealing` | 3/3 | all verified |
+      | `ant_colony_routing` | 0/3 | **DROPPED** — no abstract in any of the three sources |
+
+      `ant_colony_routing` is dropped: Deneubourg 1990, Goss 1989 and Beckers 1992 carry no abstract in
+      OpenAlex, Europe PMC or arXiv. Recorded as a dated amendment. No `input_text`,
+      `acceptable_sources`, metric, baseline or reporting rule was altered. Six seeds remain
+      `manual_paste` but **none is gate-blocking**.
+
+      All 7 `excluded_outcome_papers` were confirmed present in OpenAlex **with full abstracts**. The
+      ingest job must apply `corpus.yaml exclude_titles_from` or the validation cases answer themselves.
+- [ ] **Input-language check.** Have A or B read each `input_text` cold and flag any word that gives
+      away the source field. Set `input_language_check.status`. **Cannot be done by me** — I wrote the
+      answers.
+- [x] **Commit** and the hash recorded in `validation_cases.yaml: locked_at_commit`
+      (`d561ca9`, the commit that locked the content; recorded in `17b0405`).
+- [x] **Slide 3.** Deck skeleton written in **`docs/deck.md`**, all five slides, slide 5 intentionally
+      empty until the Hour 14 numbers exist. Slide 3 carries a **real** capture from a live
+      `gemini-3.8-flash` abstractor run, marked provisional and leak-checked, to be regenerated from
+      the final prompt by Hour 6.
+- [x] **Mock data for A.** `frontend/src/mock/hero_run.json` (21 events) and
+      `dropped_candidate.json`, with `frontend/src/mock/README.md`. Every `source_passage` is verbatim
+      from a real paper's abstract, verified against OpenAlex and Europe PMC.
+
+**Still not done, and it is the real blocker:** the ingest job itself. Nothing in this repo fetches a
+corpus, applies the seed and exclusion filters, tags fields, or runs the abstraction batch. Until that
+exists there is no index, no retrieval, and no hero collision.
 
 ## 4. Pre-registration statement
 

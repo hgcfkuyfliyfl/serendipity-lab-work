@@ -25,6 +25,7 @@ async def create_collision_run(payload: CollideRequest) -> RunCreateResponse:
             "status": orchestration["status"],
             "abstraction": orchestration["abstraction"],
             "candidates": orchestration["candidates"],
+            "results": orchestration.get("results", []),
             "trace": orchestration["trace"],
             "updated_at": int(__import__("time").time()),
         }

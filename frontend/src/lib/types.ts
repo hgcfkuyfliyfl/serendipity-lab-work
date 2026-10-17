@@ -1,6 +1,12 @@
 export type Field =
-  | "Civil Engineering" | "Biology" | "Materials Science" | "Physics"
-  | "Computer Science" | "Ecology" | "Medicine" | "Economics";
+  | "Civil Engineering"
+  | "Biology"
+  | "Materials Science"
+  | "Physics"
+  | "Computer Science"
+  | "Ecology"
+  | "Medicine"
+  | "Economics";
 
 export type SerendipityLevel = "focused" | "balanced" | "exploratory";
 

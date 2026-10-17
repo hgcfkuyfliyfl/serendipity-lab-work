@@ -2,7 +2,14 @@
  * Mock service layer. Replace these implementations with calls to
  * POST /api/collide and GET /api/runs/{id}/stream without changing pages.
  */
-import { ADJACENT, CANDIDATES, DECOMPOSITION, HERO_ABSTRACTION, HERO_TEXT, VALIDATION_CASES } from "./mock-data";
+import {
+  ADJACENT,
+  CANDIDATES,
+  DECOMPOSITION,
+  HERO_ABSTRACTION,
+  HERO_TEXT,
+  VALIDATION_CASES,
+} from "./mock-data";
 import { LEVELS } from "./serendipity";
 import type { Candidate, CollisionInput, Field, Run, TraceEvent } from "./types";
 
@@ -11,12 +18,19 @@ export const STEP_MS = 650;
 /** Pure: which candidates survive home/adjacent exclusion and rank depth. */
 export function selectCandidates(homeFields: Field[], excludedAdjacent: number, rankDepth: number) {
   const excluded = new Set<Field>(homeFields);
-  for (const h of homeFields) ADJACENT[h].slice(0, excludedAdjacent).forEach((f) => excluded.add(f));
+  for (const h of homeFields)
+    ADJACENT[h].slice(0, excludedAdjacent).forEach((f) => excluded.add(f));
   const ranked = [...CANDIDATES].sort((a, b) => b.mockScore - a.mockScore).slice(0, rankDepth);
   const kept: Candidate[] = [];
   const rejected: { id: string; reason: string }[] = [];
   for (const c of ranked) {
-    if (excluded.has(c.field)) rejected.push({ id: c.id, reason: homeFields.includes(c.field) ? `Same as home field (${c.field})` : `Adjacent field excluded by slider (${c.field})` });
+    if (excluded.has(c.field))
+      rejected.push({
+        id: c.id,
+        reason: homeFields.includes(c.field)
+          ? `Same as home field (${c.field})`
+          : `Adjacent field excluded by slider (${c.field})`,
+      });
     else kept.push(c);
   }
   return { kept, rejected, excluded: [...excluded] };
@@ -25,21 +39,48 @@ export function selectCandidates(homeFields: Field[], excludedAdjacent: number, 
 function buildTrace(input: CollisionInput, keptCount: number, rejectedCount: number): TraceEvent[] {
   const s = input.serendipity;
   const steps: [string, string, string?][] = [
-    ["Structural abstraction", `Removed domain vocabulary → "${HERO_ABSTRACTION.functional_problem}"`],
-    ["Problem decomposition", `Split into ${DECOMPOSITION.length} sub-problems`, DECOMPOSITION.join(" · ")],
-    ["Cross-domain retrieval", `Searched structure space to rank ${s.rankDepth}, excluding ${input.homeFields.join(", ")}${s.excludedAdjacent ? ` + ${s.excludedAdjacent} adjacent field(s)` : ""}`],
-    ["Skeptical peer review", `Reviewer challenged ${keptCount + rejectedCount} candidates; ${rejectedCount} filtered`],
-    ["Search refinement", "Iteration 1 of max 2: tightened 'no central controller' constraint", "Second iteration not needed — enough candidates retained"],
+    [
+      "Structural abstraction",
+      `Removed domain vocabulary → "${HERO_ABSTRACTION.functional_problem}"`,
+    ],
+    [
+      "Problem decomposition",
+      `Split into ${DECOMPOSITION.length} sub-problems`,
+      DECOMPOSITION.join(" · "),
+    ],
+    [
+      "Cross-domain retrieval",
+      `Searched structure space to rank ${s.rankDepth}, excluding ${input.homeFields.join(", ")}${s.excludedAdjacent ? ` + ${s.excludedAdjacent} adjacent field(s)` : ""}`,
+    ],
+    [
+      "Skeptical peer review",
+      `Reviewer challenged ${keptCount + rejectedCount} candidates; ${rejectedCount} filtered`,
+    ],
+    [
+      "Search refinement",
+      "Iteration 1 of max 2: tightened 'no central controller' constraint",
+      "Second iteration not needed — enough candidates retained",
+    ],
     ["Candidate ranking", `Ranked ${keptCount} candidates by mock structural score`],
     ["Prior-art check", "Checked home-field literature (demo fixtures only)"],
     ["Hypothesis translation", "Translated mechanisms back into home-field language"],
     ["Results preparation", "Attached evidence, mappings and reviewer notes"],
   ];
-  return steps.map(([step, message, detail], i) => ({ id: `t${i}`, step, message, detail, state: "waiting" as const }));
+  return steps.map(([step, message, detail], i) => ({
+    id: `t${i}`,
+    step,
+    message,
+    detail,
+    state: "waiting" as const,
+  }));
 }
 
 export function startCollisionRun(input: CollisionInput): Run {
-  const { kept, rejected } = selectCandidates(input.homeFields, input.serendipity.excludedAdjacent, input.serendipity.rankDepth);
+  const { kept, rejected } = selectCandidates(
+    input.homeFields,
+    input.serendipity.excludedAdjacent,
+    input.serendipity.rankDepth,
+  );
   return {
     id: `run_${Date.now().toString(36)}`,
     input,
@@ -66,7 +107,11 @@ export function advanceRun(run: Run): Run {
 }
 
 export function getDemoRun(): Run {
-  const run = startCollisionRun({ text: HERO_TEXT, homeFields: ["Civil Engineering"], serendipity: LEVELS.balanced });
+  const run = startCollisionRun({
+    text: HERO_TEXT,
+    homeFields: ["Civil Engineering"],
+    serendipity: LEVELS.balanced,
+  });
   return {
     ...run,
     status: "completed",
@@ -75,5 +120,6 @@ export function getDemoRun(): Run {
 }
 
 export const getCandidate = (id: string) => CANDIDATES.find((c) => c.id === id);
-export const getResults = (run: Run) => run.resultIds.map((id) => getCandidate(id)!).filter(Boolean);
+export const getResults = (run: Run) =>
+  run.resultIds.map((id) => getCandidate(id)!).filter(Boolean);
 export const getValidationCases = () => VALIDATION_CASES;

@@ -260,7 +260,9 @@ function Pulse() {
             <div className="animate-fade-up">
               <FieldTag field={sel.field} /> <MockTag>Demo score</MockTag>
               <h2 className="mt-3 text-xl">{sel.title}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{sel.explanation}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {sel.explanation || sel.hypothesis}
+              </p>
               <div className="mt-4 max-w-40">
                 <ScoreBar value={sel.mockScore} />
               </div>

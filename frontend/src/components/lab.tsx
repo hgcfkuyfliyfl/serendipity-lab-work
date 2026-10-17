@@ -2,7 +2,7 @@ import { Bookmark, BookmarkCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { actions, useStore } from "@/lib/store";
-import type { PriorArt, ReviewStatus } from "@/lib/types";
+import type { Heresy, MatchedOn, ReviewStatus } from "@/lib/types";
 
 export function Logo({ className, inverted }: { className?: string; inverted?: boolean }) {
   return (
@@ -96,12 +96,27 @@ export function ReviewBadge({ status }: { status: ReviewStatus }) {
   );
 }
 
-export const priorArtLabel: Record<PriorArt, string> = {
-  "related-found": "Potentially related work found",
-  "no-direct-match": "No direct match identified in demo",
-  pending: "Check pending",
-  "not-performed": "Check not performed",
+const heresyMap: Record<Heresy, { label: string; cls: string }> = {
+  high: { label: "Heresy: high", cls: "text-terracotta border-terracotta/50" },
+  medium: { label: "Heresy: medium", cls: "text-ochre border-ochre/50" },
+  low: { label: "Heresy: low", cls: "text-muted-foreground border-border" },
 };
+/** Topical distance from the home field. Derived on the server, never computed here. */
+export function HeresyBadge({ level }: { level: Heresy }) {
+  const h = heresyMap[level];
+  return (
+    <span
+      className={cn("rounded-sm border px-1.5 py-0.5 text-[11px]", h.cls)}
+      title="Topical distance from your home field"
+    >
+      {h.label}
+    </span>
+  );
+}
+
+export function MatchedChip({ on }: { on: MatchedOn }) {
+  return <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[11px]">Matched on {on}</span>;
+}
 
 export function SaveButton({ id, compact }: { id: string; compact?: boolean }) {
   const saved = useStore((s) => s.saved.includes(id));
@@ -161,6 +176,8 @@ export function ScoreBar({ value, label = "Demo score" }: { value: number; label
 }
 
 export const FIELD_FILL: Record<string, string> = {
+  Robotics: "fill-primary",
+  "Soft Matter Physics": "fill-ochre",
   "Civil Engineering": "fill-ochre",
   Biology: "fill-forest",
   "Materials Science": "fill-ochre",

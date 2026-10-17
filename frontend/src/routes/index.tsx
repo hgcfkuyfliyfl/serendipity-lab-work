@@ -1,9 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import gsap from "gsap";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, FileSearch, Info, ShieldQuestion, Waypoints, X } from "lucide-react";
-import antImg from "@/assets/ant.jpg";
-import trafficImg from "@/assets/traffic.jpg";
+import {
+  ArrowRight,
+  Check,
+  FileSearch,
+  Grip,
+  Hand,
+  Info,
+  ShieldQuestion,
+  Waypoints,
+  X,
+} from "lucide-react";
 import { btn, Logo } from "@/components/lab";
 
 export const Route = createFileRoute("/")({
@@ -268,7 +276,10 @@ function Landing() {
             {[
               ["Abstract", "Remove domain words and keep the underlying problem structure."],
               ["Search", "Look in other fields for the same structure, excluding your own."],
-              ["Review", "A skeptical reviewer challenges weak matches and checks prior art."],
+              [
+                "Review",
+                "A skeptical reviewer challenges weak matches. Anything without source evidence is dropped.",
+              ],
               ["Discover", "Get hypotheses grounded in source passages, with clear caveats."],
             ].map(([t, d], i) => (
               <li key={t} className="bg-card p-6">
@@ -283,48 +294,45 @@ function Landing() {
 
       <section className="mx-auto max-w-6xl px-6 py-16">
         <p className="eyebrow">Worked example</p>
-        <h2 className="mt-2 text-3xl">From traffic routing to ant foraging</h2>
+        <h2 className="mt-2 text-3xl">From a robot gripper to granular jamming</h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          A development case: a known historical collision, not a new discovery. Held-out cases are
+          how we test it.
+        </p>
         <div className="mt-8 grid items-center gap-6 md:grid-cols-[auto_auto_1fr]">
-          <div className="flex items-center gap-3">
-            <img
-              src={trafficImg}
-              alt="Aerial view of a city grid"
-              width={944}
-              height={704}
-              loading="lazy"
-              className="h-28 w-36 rounded-md object-cover"
-            />
+          <div className="flex items-center gap-3" aria-hidden>
+            <span className="grid h-28 w-28 place-items-center rounded-md bg-accent text-primary">
+              <Hand className="h-12 w-12" />
+            </span>
             <ArrowRight className="h-5 w-5 text-muted-foreground" />
-            <img
-              src={antImg}
-              alt="An ant on sand"
-              width={944}
-              height={704}
-              loading="lazy"
-              className="h-28 w-36 rounded-md object-cover"
-            />
+            <span className="grid h-28 w-28 place-items-center rounded-md bg-secondary text-primary">
+              <Grip className="h-12 w-12" />
+            </span>
           </div>
           <div className="hidden h-24 w-px bg-border md:block" />
           <dl className="grid gap-6 text-sm sm:grid-cols-3">
             <div>
               <dt className="eyebrow">Your problem</dt>
               <dd className="mt-2">
-                Optimizing traffic routing through a city grid during accidents.
+                A passive gripper that picks up objects of unknown, irregular shape without
+                per-object programming.
               </dd>
             </div>
             <div>
               <dt className="eyebrow">Structural match</dt>
               <dd className="mt-2 text-muted-foreground">
-                Decentralized rerouting of flow through a network when nodes fail, without central
-                coordination.
+                A mechanism that is soft and conformal on command, then rigid on command, driven by
+                one global control signal.
               </dd>
             </div>
             <div>
               <dt className="eyebrow">Cross-domain idea</dt>
-              <dd className="mt-2">Ant foraging and pheromone-based path reinforcement.</dd>
+              <dd className="mt-2">
+                Jamming transitions in granular matter (Soft Matter Physics).
+              </dd>
               <Link
                 to="/app/candidate/$id"
-                params={{ id: "ant-pheromone" }}
+                params={{ id: "hero-r1" }}
                 className="mt-2 inline-flex items-center gap-1 text-primary hover:underline"
               >
                 See the evidence <ArrowRight className="h-3 w-3" />

@@ -8,7 +8,8 @@ import {
   FieldTag,
   MockTag,
   PageHeader,
-  priorArtLabel,
+  HeresyBadge,
+  MatchedChip,
   ReviewBadge,
   SaveButton,
   ScoreBar,
@@ -84,7 +85,7 @@ function Results() {
         .sort((a, b) =>
           sort === "score"
             ? b.mockScore - a.mockScore
-            : b.reviewerConfidence - a.reviewerConfidence,
+            : (b.reviewerConfidence ?? 0) - (a.reviewerConfidence ?? 0),
         ),
     [all, field, status, evidence, sort],
   );
@@ -97,12 +98,20 @@ function Results() {
       <PageHeader
         eyebrow="Results"
         title={`${all.length} cross-domain candidates`}
-        aside={<MockTag>Scores are demo values</MockTag>}
+        aside={
+          <MockTag>
+            {all[0]?.live
+              ? "Live model output, not verified"
+              : all[0]?.fixture
+                ? "Placeholder scores"
+                : "Scores are demo values"}
+          </MockTag>
+        }
       >
-        Home field excluded: {run.input.homeFields.join(", ")}. Level: {run.input.serendipity.level}
-        .{" "}
+        Home field excluded: {run.input.homeFields.join(", ")}.{" "}
         {run.rejected.length > 0 &&
-          `${run.rejected.length} candidates were dropped by the exclusion rules.`}
+          `${run.rejected.length} dropped by the reviewer or exclusion rules.`}
+        {run.liveNote && <span className="mt-2 block text-terracotta">{run.liveNote}</span>}
       </PageHeader>
 
       <div ref={statRef} className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -110,7 +119,9 @@ function Results() {
           ["Candidates", all.length],
           ["Fields reached", fields.length],
           ["With source passage", all.filter((c) => c.source.passage).length],
-          ["Contested", all.filter((c) => c.reviewStatus === "contested").length],
+          all.every((c) => c.heresy)
+            ? ["High heresy", all.filter((c) => c.heresy === "high").length]
+            : ["Contested", all.filter((c) => c.reviewStatus === "contested").length],
         ].map(([k, v]) => (
           <div key={k} className="rounded-md border border-border bg-card p-3">
             <div className="font-serif text-3xl leading-none" data-count={v}>
@@ -135,19 +146,21 @@ function Results() {
             ))}
           </select>
         </label>
-        <label className="grid gap-1">
-          Reviewer status
-          <select
-            className={sel}
-            value={status}
-            onChange={(e) => setStatus(e.target.value as typeof status)}
-          >
-            <option value="all">Any</option>
-            <option value="supported">Supported</option>
-            <option value="plausible">Plausible</option>
-            <option value="contested">Contested</option>
-          </select>
-        </label>
+        {all.some((c) => c.reviewStatus) && (
+          <label className="grid gap-1">
+            Reviewer status
+            <select
+              className={sel}
+              value={status}
+              onChange={(e) => setStatus(e.target.value as typeof status)}
+            >
+              <option value="all">Any</option>
+              <option value="supported">Supported</option>
+              <option value="plausible">Plausible</option>
+              <option value="contested">Contested</option>
+            </select>
+          </label>
+        )}
         <label className="grid gap-1">
           Evidence
           <select
@@ -167,8 +180,10 @@ function Results() {
             value={sort}
             onChange={(e) => setSort(e.target.value as typeof sort)}
           >
-            <option value="score">Demo structural score</option>
-            <option value="confidence">Reviewer confidence</option>
+            <option value="score">Structural score</option>
+            {all.some((c) => c.reviewerConfidence !== undefined) && (
+              <option value="confidence">Reviewer confidence</option>
+            )}
           </select>
         </label>
       </form>
@@ -189,8 +204,7 @@ function Results() {
             </button>
           }
         >
-          Loosen a filter, or raise the Serendipity Slider on Discover to explore further down the
-          ranked list.
+          Loosen a filter to see more of the ranked list.
         </EmptyState>
       ) : (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -210,7 +224,9 @@ function Results() {
                       <span className="text-xs text-muted-foreground">
                         {adjacent ? `Adjacent to ${home}` : `Distant from ${home}`}
                       </span>
-                      <ReviewBadge status={c.reviewStatus} />
+                      {c.reviewStatus && <ReviewBadge status={c.reviewStatus} />}
+                      {c.heresy && <HeresyBadge level={c.heresy} />}
+                      {c.matchedOn && <MatchedChip on={c.matchedOn} />}
                     </div>
                     <h2 className="mt-2 text-xl">
                       <Link
@@ -221,7 +237,9 @@ function Results() {
                         {c.title}
                       </Link>
                     </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{c.explanation}</p>
+                    {c.explanation && (
+                      <p className="mt-1 text-sm text-muted-foreground">{c.explanation}</p>
+                    )}
                     <p className="mt-3 border-l-2 border-primary pl-3 text-sm">
                       <span className="font-medium">What if: </span>
                       {c.hypothesis}
@@ -233,17 +251,27 @@ function Results() {
                         ) : (
                           <FileWarning className="h-3.5 w-3.5 text-terracotta" aria-hidden />
                         )}
-                        {c.source.passage ? "Source passage (illustrative)" : "Evidence incomplete"}
+                        {c.source.passage
+                          ? c.fixture
+                            ? "Verbatim source passage"
+                            : "Source passage (illustrative)"
+                          : "Evidence incomplete"}
                       </span>
-                      <span>Prior art: {priorArtLabel[c.priorArt]}</span>
                       {c.tags.map((t) => (
                         <span key={t}>#{t}</span>
                       ))}
                     </div>
                   </div>
                   <div className="flex flex-row items-start justify-between gap-3 md:flex-col md:items-stretch">
-                    <ScoreBar value={c.mockScore} label="Demo score" />
-                    <ScoreBar value={c.reviewerConfidence} label="Reviewer conf." />
+                    <ScoreBar
+                      value={c.mockScore}
+                      label={
+                        c.live ? "Model estimate" : c.fixture ? "Placeholder score" : "Demo score"
+                      }
+                    />
+                    {c.reviewerConfidence !== undefined && (
+                      <ScoreBar value={c.reviewerConfidence} label="Reviewer conf." />
+                    )}
                     <div className="flex items-center gap-1">
                       <Link to="/app/candidate/$id" params={{ id: c.id }} className={btn.primary}>
                         Why?

@@ -1,6 +1,9 @@
+import { HERO_FIXTURE_ABSTRACTION, HERO_REQUEST_TEXT } from "@/mock/hero";
 import type { Abstraction, Candidate, Field, ValidationCase } from "./types";
 
 export const FIELDS: Field[] = [
+  "Robotics",
+  "Soft Matter Physics",
   "Civil Engineering",
   "Biology",
   "Materials Science",
@@ -13,6 +16,8 @@ export const FIELDS: Field[] = [
 
 /** Fields considered structurally "adjacent" to each home field, closest first. */
 export const ADJACENT: Record<Field, Field[]> = {
+  Robotics: ["Computer Science", "Materials Science", "Civil Engineering"],
+  "Soft Matter Physics": ["Physics", "Materials Science", "Biology"],
   "Civil Engineering": ["Computer Science", "Economics", "Physics"],
   Biology: ["Ecology", "Medicine", "Materials Science"],
   "Materials Science": ["Physics", "Civil Engineering", "Biology"],
@@ -23,14 +28,20 @@ export const ADJACENT: Record<Field, Field[]> = {
   Economics: ["Computer Science", "Ecology", "Civil Engineering"],
 };
 
-export const HERO_TEXT =
-  "Optimizing traffic routing through a city grid during accidents, when several intersections become blocked and drivers need to be redirected quickly without a central controller.";
+/** FROZEN hero input. Do not edit without a team amendment. */
+export const HERO_TEXT = HERO_REQUEST_TEXT;
 
 export const SAMPLE_SCENARIOS = [
   {
+    id: "grasp",
+    label: "Robot Grasping",
+    text: HERO_TEXT,
+    home: ["Robotics"] as Field[],
+  },
+  {
     id: "traffic",
     label: "Traffic Routing",
-    text: HERO_TEXT,
+    text: "Optimizing traffic routing through a city grid during accidents, when several intersections become blocked and drivers need to be redirected quickly without a central controller.",
     home: ["Civil Engineering"] as Field[],
   },
   {
@@ -59,19 +70,7 @@ export const SAMPLE_SCENARIOS = [
   },
 ];
 
-export const HERO_ABSTRACTION: Abstraction = {
-  functional_problem:
-    "Decentralized rerouting of flow through a network when some nodes fail, without central coordination.",
-  constraints: [
-    "No global controller",
-    "Partial, local information only",
-    "Failures appear suddenly",
-    "Fast adaptation required",
-  ],
-  mechanism:
-    "Agents update route preferences from locally observed outcomes, reinforcing paths that work.",
-  domain_tags: ["civil engineering", "transportation"],
-};
+export const HERO_ABSTRACTION: Abstraction = HERO_FIXTURE_ABSTRACTION;
 
 export const DECOMPOSITION = [
   "Detect failed or degraded nodes from local signals",
@@ -92,9 +91,6 @@ export const CANDIDATES: Candidate[] = [
     hypothesis:
       "Vehicles (or roadside units) could deposit decaying 'virtual pheromone' on segments that moved quickly, letting routes re-form around an accident without a central planner.",
     reviewStatus: "plausible",
-    priorArt: "related-found",
-    priorArtNote:
-      "Ant-colony-inspired traffic routing has prior work in the transport literature. This does not confirm or deny novelty of a specific design.",
     source: {
       citation: "Illustrative abstract — mock data, not a real quotation",
       passage:
@@ -147,8 +143,6 @@ export const CANDIDATES: Candidate[] = [
     hypothesis:
       "Lane-allocation or signal-timing could adapt like tube thickness: capacity follows recent flow, so the network re-balances after a blockage.",
     reviewStatus: "plausible",
-    priorArt: "pending",
-    priorArtNote: "Prior-art check queued in the demo. No novelty conclusion should be drawn.",
     source: {
       citation: "Illustrative abstract — mock data, not a real quotation",
       passage:
@@ -185,9 +179,6 @@ export const CANDIDATES: Candidate[] = [
     hypothesis:
       "Pre-designate low-use 'collateral' streets that are automatically opened (signal priority) when a nearby arterial is blocked.",
     reviewStatus: "contested",
-    priorArt: "no-direct-match",
-    priorArtNote:
-      "No direct match identified in the demonstration corpus. This is not a novelty determination.",
     source: { citation: "Evidence incomplete — no passage retrieved", passage: null },
     mapping: [
       { source: "Collateral vessels", home: "Parallel side streets" },
@@ -223,9 +214,6 @@ export const CANDIDATES: Candidate[] = [
     hypothesis:
       "Signal controllers could release vehicles toward downstream links with shorter queues (max-pressure control).",
     reviewStatus: "supported",
-    priorArt: "related-found",
-    priorArtNote:
-      "Max-pressure signal control is established in traffic engineering — a close neighbour, not a distant collision.",
     source: {
       citation: "Illustrative abstract — mock data, not a real quotation",
       passage:
@@ -255,9 +243,6 @@ export const CANDIDATES: Candidate[] = [
     hypothesis:
       "Short-lived dynamic tolls around an incident could spread diverted traffic across several alternatives instead of one.",
     reviewStatus: "contested",
-    priorArt: "related-found",
-    priorArtNote:
-      "Congestion pricing is well studied. Incident-triggered micro-tolling may have related work.",
     source: {
       citation: "Illustrative abstract — mock data, not a real quotation",
       passage:
@@ -287,8 +272,6 @@ export const CANDIDATES: Candidate[] = [
     hypothesis:
       "Temporarily 'prune' low-value turns at signals near an incident to concentrate flow on productive corridors.",
     reviewStatus: "plausible",
-    priorArt: "not-performed",
-    priorArtNote: "Prior-art check not performed in the demo for low-ranked candidates.",
     source: { citation: "Evidence incomplete — no passage retrieved", passage: null },
     mapping: [
       { source: "Branch pruning", home: "Turn restrictions" },
@@ -314,8 +297,6 @@ export const CANDIDATES: Candidate[] = [
     hypothesis:
       "Brief, staggered release patterns at a bottleneck near an accident may reduce gridlock 'arches'.",
     reviewStatus: "contested",
-    priorArt: "related-found",
-    priorArtNote: "Granular analogies for pedestrian and vehicle flow exist in the literature.",
     source: {
       citation: "Illustrative abstract — mock data, not a real quotation",
       passage:

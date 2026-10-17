@@ -86,7 +86,9 @@ function Compare() {
                   <FieldTag field={c.field} />
                   <Ev yes={!!c.source.passage} />
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">{c.explanation}</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {c.explanation || c.hypothesis}
+                </p>
                 <Link
                   to="/app/candidate/$id"
                   params={{ id: c.id }}

@@ -7,15 +7,17 @@ import {
   copyText,
   EmptyState,
   FieldTag,
+  HeresyBadge,
+  MatchedChip,
   MockTag,
-  priorArtLabel,
   ReviewBadge,
   SaveButton,
   ScoreBar,
 } from "@/components/lab";
 import { HERO_ABSTRACTION, HERO_TEXT } from "@/lib/mock-data";
-import { getCandidate } from "@/lib/service";
+import { getCandidate, liveSiblings } from "@/lib/service";
 import { CANDIDATES } from "@/lib/mock-data";
+import { HERO_CANDIDATES } from "@/mock/hero";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/app/candidate/$id")({ component: Inspector });
@@ -36,6 +38,7 @@ function Block({ title, items, open }: { title: string; items: string[]; open?: 
 function Inspector() {
   const { id } = Route.useParams();
   const draft = useStore((s) => s.draft);
+  const run = useStore((s) => s.run);
   const c = getCandidate(id);
   if (!c)
     return (
@@ -50,7 +53,13 @@ function Inspector() {
         This idea is not in the demo data.
       </EmptyState>
     );
-  const problem = draft.text || HERO_TEXT;
+  const own = c.live || c.fixture;
+  const problem = own ? (c.problem ?? draft.text) : draft.text || HERO_TEXT;
+  const abstraction = own
+    ? (c.abstraction ??
+      run?.abstraction ?? { functional_problem: "Abstraction unavailable for this run." })
+    : HERO_ABSTRACTION;
+  const others = c.fixture ? HERO_CANDIDATES : c.live ? liveSiblings(c.id) : CANDIDATES;
 
   return (
     <>
@@ -64,8 +73,16 @@ function Inspector() {
           <h1 className="mt-2 text-3xl md:text-4xl">{c.title}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <FieldTag field={c.field} />
-            <ReviewBadge status={c.reviewStatus} />
-            <MockTag>Demo data</MockTag>
+            {c.reviewStatus && <ReviewBadge status={c.reviewStatus} />}
+            {c.heresy && <HeresyBadge level={c.heresy} />}
+            {c.matchedOn && <MatchedChip on={c.matchedOn} />}
+            <MockTag>
+              {c.live
+                ? "Live model output"
+                : c.fixture
+                  ? "Fixture: placeholder scores"
+                  : "Demo data"}
+            </MockTag>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -88,131 +105,163 @@ function Inspector() {
               </div>
               <div>
                 <dt className="eyebrow">Structural abstraction</dt>
-                <dd className="mt-1 text-muted-foreground">
-                  {HERO_ABSTRACTION.functional_problem}
-                </dd>
+                <dd className="mt-1 text-muted-foreground">{abstraction.functional_problem}</dd>
               </div>
             </dl>
             <p className="mt-5 border-l-2 border-primary pl-3">
               <span className="eyebrow block">Proposed hypothesis (interpretation)</span>
               {c.hypothesis}
             </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl">Source evidence</h2>
-            {c.source.passage ? (
-              <figure className="evidence mt-3 p-5">
-                <figcaption className="eyebrow mb-2 flex items-center gap-2">
-                  Source passage <MockTag>Illustrative, not verified</MockTag>
-                </figcaption>
-                <blockquote className="font-serif text-lg leading-relaxed">
-                  “{c.source.passage}”
-                </blockquote>
-                <p className="mt-3 text-xs text-muted-foreground">{c.source.citation}</p>
-                {c.image === "ant" && (
-                  <img
-                    src={antImg}
-                    alt="An ant walking on sand"
-                    width={944}
-                    height={704}
-                    loading="lazy"
-                    className="mt-4 h-32 w-48 rounded-md object-cover"
-                  />
-                )}
-              </figure>
-            ) : (
-              <div
-                role="status"
-                className="mt-3 flex gap-3 rounded-md border border-dashed border-terracotta/60 bg-card p-5 text-sm"
-              >
-                <FileWarning className="h-5 w-5 shrink-0 text-terracotta" aria-hidden />
-                <div>
-                  <p className="font-medium">Incomplete evidence</p>
-                  <p className="mt-1 text-muted-foreground">
-                    No source passage was retrieved. A real run would drop this suggestion. It is
-                    kept here only so you can see the state. Treat the mapping below as unverified.
-                  </p>
-                </div>
-              </div>
+            {c.matchedOn && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                {c.matchedOn === "mechanism"
+                  ? "Matched on mechanism: the source describes how something works that your design could borrow."
+                  : "Matched on problem: the source is about the same underlying problem, in another field."}
+              </p>
             )}
           </section>
 
-          <section>
-            <h2 className="text-xl">
-              Concept mapping <MockTag>Illustrative</MockTag>
-            </h2>
-            <div className="mt-3 overflow-x-auto rounded-md border border-border">
-              <table className="w-full min-w-[28rem] text-sm">
-                <thead className="bg-secondary text-left">
-                  <tr>
-                    <th scope="col" className="p-3 font-medium">
-                      Source concept ({c.field})
-                    </th>
-                    <th scope="col" className="p-3 font-medium">
-                      Home-field concept
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {c.mapping.map((m) => (
-                    <tr key={m.source} className="border-t border-border">
-                      <td className="p-3">{m.source}</td>
-                      <td className="p-3 text-muted-foreground">{m.home}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <div className="grid gap-8 md:grid-cols-2">
+            <section>
+              <h2 className="text-xl">Source evidence</h2>
+              {c.source.passage ? (
+                <figure className="evidence mt-3 p-5">
+                  <figcaption className="eyebrow mb-2 flex items-center gap-2">
+                    Source passage {!c.fixture && <MockTag>Illustrative, not verified</MockTag>}
+                  </figcaption>
+                  <blockquote className="font-serif text-base leading-relaxed">
+                    “{c.source.passage}”
+                  </blockquote>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {c.source.citation}
+                    {c.paper?.doi && (
+                      <>
+                        {" · "}
+                        <a
+                          href={c.paper.doi}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline underline-offset-2"
+                        >
+                          DOI
+                        </a>
+                      </>
+                    )}
+                  </p>
+                  {c.image === "ant" && (
+                    <img
+                      src={antImg}
+                      alt="An ant walking on sand"
+                      width={944}
+                      height={704}
+                      loading="lazy"
+                      className="mt-4 h-32 w-48 rounded-md object-cover"
+                    />
+                  )}
+                </figure>
+              ) : (
+                <div
+                  role="status"
+                  className="mt-3 flex gap-3 rounded-md border border-dashed border-terracotta/60 bg-card p-5 text-sm"
+                >
+                  <FileWarning className="h-5 w-5 shrink-0 text-terracotta" aria-hidden />
+                  <div>
+                    <p className="font-medium">Incomplete evidence</p>
+                    <p className="mt-1 text-muted-foreground">
+                      {c.live
+                        ? "The model had no document to quote, so there is no source passage. This is the model's own suggestion. Treat the mapping below as an unverified idea."
+                        : "No source passage was retrieved. A real run would drop this suggestion. It is kept here only so you can see the state. Treat the mapping below as unverified."}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </section>
 
-          <section>
-            <h2 className="text-xl">Prior-art status</h2>
-            <p className="mt-2 text-sm">
-              <span className="font-medium">{priorArtLabel[c.priorArt]}.</span>{" "}
-              <span className="text-muted-foreground">{c.priorArtNote}</span>
-            </p>
-            <p className="mt-2 flex gap-2 text-xs text-muted-foreground">
-              <Info className="h-4 w-4 shrink-0" aria-hidden />
-              This is mock status for the demo. It is not a real novelty determination.
-            </p>
-          </section>
+            <section>
+              <h2 className="text-xl">
+                Concept mapping {!c.fixture && <MockTag>Illustrative</MockTag>}
+              </h2>
+              <div className="mt-3 overflow-x-auto rounded-md border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary text-left">
+                    <tr>
+                      <th scope="col" className="p-3 font-medium">
+                        Source concept ({c.field})
+                      </th>
+                      <th scope="col" className="p-3 font-medium">
+                        Home-field concept
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {c.mapping.map((m) => (
+                      <tr key={m.source} className="border-t border-border">
+                        <td className="p-3">{m.source}</td>
+                        <td className="p-3 text-muted-foreground">{m.home}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
 
           <section>
             <h2 className="text-xl">Other candidates</h2>
             <ul className="mt-2 flex flex-wrap gap-2 text-sm">
-              {CANDIDATES.filter((x) => x.id !== c.id).map((x) => (
-                <li key={x.id}>
-                  <Link
-                    to="/app/candidate/$id"
-                    params={{ id: x.id }}
-                    className="block rounded-md border border-border bg-card px-3 py-1.5 hover:border-primary/50"
-                  >
-                    {x.title}
-                  </Link>
-                </li>
-              ))}
+              {others
+                .filter((x) => x.id !== c.id)
+                .map((x) => (
+                  <li key={x.id}>
+                    <Link
+                      to="/app/candidate/$id"
+                      params={{ id: x.id }}
+                      className="block rounded-md border border-border bg-card px-3 py-1.5 hover:border-primary/50"
+                    >
+                      {x.title}
+                    </Link>
+                  </li>
+                ))}
             </ul>
           </section>
         </div>
 
         <aside className="h-fit self-start rounded-lg bg-ink p-6 text-ink-foreground lg:sticky lg:top-20">
           <h2 className="text-xl">Skeptical reviewer</h2>
-          <div className="mt-3 flex gap-6">
-            <ScoreBar value={c.mockScore} label="Demo score" />
-            <ScoreBar value={c.reviewerConfidence} label="Confidence" />
-          </div>
-          <p className="mt-4 text-sm text-ink-muted">{c.reviewer.useful}</p>
-          <div className="mt-3">
-            <Block title="Mechanisms that look similar" items={c.reviewer.similar} open />
-            <Block title="Assumptions required" items={c.reviewer.assumptions} />
-            <Block title="Where it may fail" items={c.reviewer.failure} open />
-            <Block title="Investigate next" items={c.reviewer.next} />
-          </div>
-          <p className="mt-4 font-mono text-[10px] text-ink-muted">
-            Reviewer notes are demo content and express real uncertainty. Expert judgment is
-            required.
-          </p>
+          {c.fixture ? (
+            <>
+              <div className="mt-3">
+                <ScoreBar value={c.mockScore} label="Placeholder score" />
+              </div>
+              <h3 className="eyebrow mt-5 text-ink-muted">Where the analogy breaks</h3>
+              <p className="mt-2 text-sm">{c.reviewerNote}</p>
+              <p className="mt-4 font-mono text-[10px] text-ink-muted">
+                Score and reviewer wording are placeholders from the contract fixture. The passage
+                and mapping are the evidence.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="mt-3 flex gap-6">
+                <ScoreBar value={c.mockScore} label={c.live ? "Model estimate" : "Demo score"} />
+                {c.reviewerConfidence !== undefined && (
+                  <ScoreBar value={c.reviewerConfidence} label="Confidence" />
+                )}
+              </div>
+              <p className="mt-4 text-sm text-ink-muted">{c.reviewer.useful}</p>
+              <div className="mt-3">
+                <Block title="Mechanisms that look similar" items={c.reviewer.similar} open />
+                <Block title="Assumptions required" items={c.reviewer.assumptions} />
+                <Block title="Where it may fail" items={c.reviewer.failure} open />
+                <Block title="Investigate next" items={c.reviewer.next} />
+              </div>
+              <p className="mt-4 font-mono text-[10px] text-ink-muted">
+                {c.live
+                  ? "Reviewer notes come from a second Gemini call. They are not expert review."
+                  : "Reviewer notes are demo content and express real uncertainty. Expert judgment is required."}
+              </p>
+            </>
+          )}
         </aside>
       </div>
     </>

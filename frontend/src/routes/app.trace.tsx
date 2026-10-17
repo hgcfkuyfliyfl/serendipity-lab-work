@@ -22,22 +22,23 @@ function TracePage() {
 
   const failed = run.status === "failed";
   const done = run.status === "completed";
-  const retrieval = run.trace[2];
+  const stopped = run.trace.find((e) => e.state === "failed");
 
   return (
     <>
       <PageHeader
         eyebrow="Agent trace"
         title="What the agent did"
-        aside={<MockTag>Simulated workflow</MockTag>}
+        aside={<MockTag>{run.fixture ? "Mock fixture playback" : "Simulated workflow"}</MockTag>}
       >
-        Nine steps run in a fixed order, so the demo is the same every time. The feed shows what it
-        opens, reads and objects to. Refinement is capped at two loops.
+        {run.fixture
+          ? "The agent decomposes your problem, retrieves, lets a skeptic reject candidates, then rewrites its own queries and retrieves again. Each line is one event from the run."
+          : "Nine steps run in a fixed order, so the demo is the same every time. The feed shows what it opens, reads and objects to. Refinement is capped at two loops."}
       </PageHeader>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-live="polite">
-          <LiveFeed run={run} />
+          {!run.fixture && <LiveFeed run={run} />}
           <TraceList run={run} />
           {failed && (
             <div
@@ -46,11 +47,30 @@ function TracePage() {
             >
               <p className="font-medium">Retrieval did not finish.</p>
               <p className="mt-1 text-muted-foreground">
-                {retrieval.message} Nothing was lost: your input is kept.
+                {stopped?.message} Nothing was lost: your input is kept.
               </p>
             </div>
           )}
-          {run.cachedFallback && done && (
+          {run.liveNote && (
+            <p className="mt-4 text-sm text-terracotta" role="status">
+              {run.liveNote}
+            </p>
+          )}
+          {done && run.fixture && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              This is a replay of a frozen fixture. Titles, years, DOIs and source passages are real
+              (checked against OpenAlex and Europe PMC). Scores, heresy labels, hypotheses and
+              reviewer notes are placeholders and will change when real output lands.
+            </p>
+          )}
+          {done && run.candidates && !run.fixture && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              These candidates were generated live by Gemini from its general knowledge. No paper
+              corpus is connected, so no source passages were retrieved and nothing here is
+              verified.
+            </p>
+          )}
+          {run.cachedFallback && done && !run.liveNote && !run.candidates && (
             <p className="mt-4 text-sm text-muted-foreground">
               The abstraction of your text is live (Gemini). The ranked candidates are still the
               cached demo set, because no real corpus is connected yet.
@@ -94,7 +114,8 @@ function TracePage() {
                 ))}
                 {run.rejected.map((r) => (
                   <li key={r.id}>
-                    <span className="text-terracotta">Dropped:</span> {getCandidate(r.id)?.title}
+                    <span className="text-terracotta">Dropped:</span>{" "}
+                    {r.title ?? getCandidate(r.id)?.title}
                     <span className="block text-xs text-muted-foreground">{r.reason}</span>
                   </li>
                 ))}

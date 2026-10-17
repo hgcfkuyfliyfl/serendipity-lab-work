@@ -16,8 +16,15 @@ const STATE: Record<TraceState, { label: string; icon: typeof Circle; cls: strin
 export function TraceRow({ e, index }: { e: TraceEvent; index: number }) {
   const s = STATE[e.state];
   const Icon = s.icon;
+  const row = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    // Fixture playback has 15 rows: keep the one that is running in view.
+    if (e.meta && e.state === "running")
+      row.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [e.meta, e.state]);
   return (
     <li
+      ref={row}
       className={cn(
         "grid grid-cols-[2rem_1fr_auto] gap-x-3 border-b border-border py-4 last:border-0",
         e.state === "waiting" && "opacity-60",
@@ -33,9 +40,26 @@ export function TraceRow({ e, index }: { e: TraceEvent; index: number }) {
           <span className="mr-2 font-mono text-xs text-muted-foreground">
             {String(index + 1).padStart(2, "0")}
           </span>
-          {e.step}
+          {e.step.replace("_", " ")}
         </p>
         <p className="mt-0.5 text-sm text-muted-foreground">{e.message}</p>
+        {e.meta && e.state !== "waiting" && (
+          <p className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+            {e.meta.cached && (
+              <span className="rounded-sm bg-accent px-1.5 py-0.5 text-accent-foreground">
+                cached
+              </span>
+            )}
+            {e.step === "llm_retry" && (
+              <span className="rounded-sm border border-ochre/50 px-1.5 py-0.5 text-ochre">
+                retry {e.meta.attempt}
+              </span>
+            )}
+            {e.meta.task && (
+              <span className="rounded-sm bg-secondary px-1.5 py-0.5 font-mono">{e.meta.task}</span>
+            )}
+          </p>
+        )}
         {e.detail && e.state !== "waiting" && (
           <p className="mt-1 font-mono text-xs text-muted-foreground">{e.detail}</p>
         )}
@@ -43,7 +67,11 @@ export function TraceRow({ e, index }: { e: TraceEvent; index: number }) {
       <div className="text-right">
         <span className={cn("text-xs font-medium", s.cls)}>{s.label}</span>
         <p className="font-mono text-[11px] text-muted-foreground">
-          {e.elapsedMs ? `+${(e.elapsedMs / 1000).toFixed(1)}s` : "–"}
+          {e.meta?.ms
+            ? `${(e.meta.ms / 1000).toFixed(1)}s`
+            : e.elapsedMs
+              ? `+${(e.elapsedMs / 1000).toFixed(1)}s`
+              : "–"}
         </p>
       </div>
     </li>
@@ -104,13 +132,13 @@ export function LiveFeed({ run }: { run: Run }) {
   const steps = activityFor(run);
   const runIdx = run.trace.findIndex((e) => e.state === "running");
   const [n, setN] = useState(0);
+  const lenRef = useRef(0);
+  lenRef.current = steps[runIdx]?.length ?? 0;
   useEffect(() => {
     setN(0);
     if (runIdx < 0) return;
-    const len = steps[runIdx]?.length ?? 0;
-    const t = setInterval(() => setN((v) => Math.min(v + 1, len)), 1500 / Math.max(len, 1));
+    const t = setInterval(() => setN((v) => Math.min(v + 1, lenRef.current)), 350);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runIdx, run.id]);
 
   const lines = steps.flatMap((list, i) => {
@@ -132,7 +160,11 @@ export function LiveFeed({ run }: { run: Run }) {
   return (
     <div className="mb-8 overflow-hidden rounded-xl bg-ink text-ink-foreground">
       <div className="flex items-center justify-between border-b border-ink-line px-4 py-2 text-xs text-ink-muted">
-        <span>Live activity (simulated)</span>
+        <span>
+          {run.liveStage === "pending" || run.liveStage === "done"
+            ? "Live activity (Gemini)"
+            : "Activity (simulated)"}
+        </span>
         <span>{run.status === "running" ? "working..." : "finished"}</span>
       </div>
       <div

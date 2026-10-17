@@ -3,9 +3,8 @@ import { AlertCircle, Play, RotateCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { btn, Chip, MockTag, PageHeader } from "@/components/lab";
 import { TraceMini } from "@/components/trace";
-import { Slider } from "@/components/ui/slider";
-import { ADJACENT, FIELDS, HERO_ABSTRACTION, HERO_TEXT, SAMPLE_SCENARIOS } from "@/lib/mock-data";
-import { LEVELS, LEVEL_ORDER } from "@/lib/serendipity";
+import { FIELDS, HERO_ABSTRACTION, HERO_TEXT, SAMPLE_SCENARIOS } from "@/lib/mock-data";
+import { FIXED } from "@/lib/serendipity";
 import { actions, useStore } from "@/lib/store";
 import type { Field } from "@/lib/types";
 
@@ -18,7 +17,7 @@ function Discover() {
   const navigate = useNavigate();
   const draft = useStore((s) => s.draft);
   const run = useStore((s) => s.run);
-  const { text, homeFields, serendipity: sl } = draft;
+  const { text, homeFields } = draft;
 
   const error =
     text.trim().length < MIN
@@ -27,9 +26,6 @@ function Discover() {
         ? "Select at least one home field so it can be excluded from the search."
         : null;
   const excluded = new Set<Field>(homeFields);
-  homeFields.forEach((h) =>
-    ADJACENT[h].slice(0, sl.excludedAdjacent).forEach((f) => excluded.add(f)),
-  );
   const adjacentOnly = [...excluded].filter((f) => !homeFields.includes(f));
 
   const toggleField = (f: Field) =>
@@ -44,10 +40,10 @@ function Discover() {
   const loadDemo = () => {
     actions.setDraft({
       text: HERO_TEXT,
-      homeFields: ["Civil Engineering"],
-      serendipity: LEVELS.balanced,
+      homeFields: ["Robotics"],
+      serendipity: FIXED,
     });
-    toast("Demo scenario loaded: traffic routing");
+    toast("Demo scenario loaded: robot grasping");
   };
   const live = run?.abstraction && run.input.text === text ? run.abstraction : null;
   const shownAbs = live ?? (text === HERO_TEXT ? HERO_ABSTRACTION : null);
@@ -58,7 +54,7 @@ function Discover() {
       <PageHeader
         eyebrow="Discover"
         title="Find Cross-Domain Collisions"
-        aside={<MockTag>Runs on demo data</MockTag>}
+        aside={<MockTag>Live Gemini, unverified</MockTag>}
       >
         Describe your research problem in plain terms. The agent strips the domain words, then looks
         for problems with the same structure in other fields.
@@ -145,49 +141,6 @@ function Discover() {
             </div>
           </section>
 
-          <section className="border-y border-border py-6" aria-labelledby="slider-h">
-            <div className="flex items-baseline justify-between">
-              <h2 id="slider-h" className="text-xl">
-                Serendipity Slider
-              </h2>
-              <span className="text-sm font-medium text-primary">{LEVELS[sl.level].label}</span>
-            </div>
-            <Slider
-              className="mt-5"
-              min={0}
-              max={2}
-              step={1}
-              value={[LEVEL_ORDER.indexOf(sl.level)]}
-              aria-label="Serendipity level"
-              onValueChange={([v]) => actions.setDraft({ serendipity: LEVELS[LEVEL_ORDER[v]] })}
-            />
-            <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-              {LEVEL_ORDER.map((l) => (
-                <span key={l} className={l === sl.level ? "font-medium text-foreground" : ""}>
-                  {LEVELS[l].label}
-                </span>
-              ))}
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">{LEVELS[sl.level].summary}</p>
-            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="eyebrow">Adjacent fields excluded</dt>
-                <dd className="mt-1 font-mono">
-                  {sl.excludedAdjacent}
-                  {adjacentOnly.length > 0 && (
-                    <span className="ml-2 font-sans text-muted-foreground">
-                      ({adjacentOnly.join(", ")})
-                    </span>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="eyebrow">Ranked list explored to</dt>
-                <dd className="mt-1 font-mono">top {sl.rankDepth}</dd>
-              </div>
-            </dl>
-          </section>
-
           <div>
             <p className="eyebrow mb-2">Try a sample scenario</p>
             <div className="flex flex-wrap gap-2">
@@ -218,7 +171,9 @@ function Discover() {
             {shownAbs ? (
               <div className="mt-3 text-sm">
                 <p className="font-serif text-lg leading-snug">{shownAbs.functional_problem}</p>
-                <p className="mt-3 text-muted-foreground">{shownAbs.mechanism}</p>
+                {shownAbs.mechanism && (
+                  <p className="mt-3 text-muted-foreground">{shownAbs.mechanism}</p>
+                )}
                 <ul className="mt-3 list-disc space-y-1 pl-4 text-muted-foreground">
                   {shownAbs.constraints.map((c) => (
                     <li key={c}>{c}</li>
@@ -234,8 +189,8 @@ function Discover() {
           <section className="rounded-lg bg-accent p-5 text-sm">
             <h2 className="text-lg">Structure, not keywords</h2>
             <p className="mt-2 text-muted-foreground">
-              Traffic jams and ant trails share no words. They share a shape: many agents, local
-              signals, no central planner, sudden failures.
+              Two fields can describe the same problem in different words. The agent keeps the
+              shape: what must change, under which constraints, driven by what signal.
             </p>
           </section>
           {run && (

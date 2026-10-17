@@ -100,7 +100,8 @@ function AppLayout() {
         </nav>
         {!collapsed && (
           <p className="m-4 rounded-md border border-ink-line p-3 font-mono text-[10px] leading-relaxed text-ink-muted">
-            DEMO MODE · All results are local mock data. No backend connected.
+            PROTOTYPE · Runs are written live by Gemini and are not verified. No paper corpus is
+            connected.
           </p>
         )}
       </aside>
@@ -121,7 +122,7 @@ function AppLayout() {
           </button>
           <span className="eyebrow">Workspace</span>
           <div className="ml-auto flex items-center gap-3 text-sm">
-            <span className="mock-tag">Demo data</span>
+            <span className="mock-tag">Unverified</span>
             <div className="relative">
               <button
                 onClick={() => setMenu((m) => !m)}

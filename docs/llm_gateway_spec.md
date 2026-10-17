@@ -74,6 +74,16 @@ class LLMGateway:
 9. **Structured output:** prefer the provider's tool-use / structured-output mechanism with the schema. Still validate afterward.
 10. **Provider isolation:** all Anthropic-specific code lives in one adapter class. Swapping provider means changing `models.yaml` and one file.
 11. **Counters:** log cache hits, misses, retries, and token usage per task. One summary line at the end of a batch.
+12. **Thinking mode off, always.** Provider is DeepSeek (`config/models.yaml: llm.provider`), which enables
+    thinking mode by default at effort `high`. The gateway must send the toggle on **every** request, read
+    from `llm.thinking.mode`. Wire it per format:
+    `{"thinking": {"type": "disabled"}}` (OpenAI format) or `{"reasoning": {"effort": "none"}}` (Anthropic format).
+    With thinking left on, DeepSeek **silently ignores `temperature`** — the `temperature: 0` in
+    `models.yaml` becomes a no-op and the validation table stops being reproducible. It also emits a chain of
+    thought that will not fit the 20s hero budget. A request that returns a populated `reasoning_content`
+    field means the toggle is not being sent: treat that as a bug, not a warning.
+13. **Reasoning output is not content.** If `reasoning_content` appears anyway, do not concatenate it into
+    the next turn and never let it reach the schema validator. Only `content` is parsed.
 
 ## Trace events
 

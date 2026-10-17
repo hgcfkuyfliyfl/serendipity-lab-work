@@ -3,35 +3,47 @@
 version: 1
 
 llm:
-  provider: anthropic
-  api_key_env: ANTHROPIC_API_KEY
-  base_model: claude-sonnet-5-5
+  provider: deepseek
+  base_url: https://api.deepseek.com
+  # DeepSeek also serves an Anthropic-format mirror at https://api.deepseek.com/anthropic.
+  # Unverified for tool use / structured output. Until it is verified, use the OpenAI-format
+  # base_url above. If it passes the gateway acceptance tests it becomes the cheaper swap,
+  # because the adapter would keep its existing shape.
+  api_key_env: DEEPSEEK_API_KEY
+  base_model: deepseek-v4-pro
+  # THINKING MODE MUST STAY DISABLED. DeepSeek defaults it to ON at effort "high".
+  # Two consequences if it is left on: (1) temperature is silently ignored, so the
+  # temperature: 0 below does nothing and the validation table stops being reproducible;
+  # (2) the chain of thought blows the 20s hero budget.
+  # Wire per format: {"thinking": {"type": "disabled"}}  or  {"reasoning": {"effort": "none"}}
+  thinking:
+    mode: disabled
   # Rule: abstractor and decomposer MUST use the same model. Both produce text that is embedded into
   # the same space as the corpus abstractions. A model mismatch is a silent quality bug.
   tasks:
     abstractor:
-      model: claude-sonnet-5-5
+      model: deepseek-v4-pro
       temperature: 0            # determinism makes the cache and the validation table reproducible; drop if the API rejects it
       max_tokens: 600
       timeout_s: 45
       prompt_file: prompts/abstractor.md
       schema_file: config/schemas/abstraction.schema.json
     decomposer:                 # also used in rewrite mode (given a reviewer critique, produce better queries)
-      model: claude-sonnet-5-5
+      model: deepseek-v4-pro
       temperature: 0
       max_tokens: 700
       timeout_s: 45
       prompt_file: prompts/decomposer.md
       schema_file: config/schemas/decomposer.schema.json      # written by Hour 6
     skeptic:                    # reviewer: keep/drop + reason + boundary conditions
-      model: claude-sonnet-5-5  # first thing to downgrade to claude-haiku-5-5 if latency breaks the 20s target
+      model: deepseek-v4-pro  # first thing to downgrade to deepseek-flash if latency breaks the 20s target
       temperature: 0.2
       max_tokens: 500
       timeout_s: 30
       prompt_file: prompts/skeptic.md
       schema_file: config/schemas/skeptic.schema.json         # written by Hour 6
     translator:                 # what-if + source_passage + mapping[] + reviewer_note
-      model: claude-sonnet-5-5
+      model: deepseek-v4-pro
       temperature: 0.3
       max_tokens: 900
       timeout_s: 60
@@ -94,4 +106,7 @@ retrieval:
     buckets: tertiles_of_candidate_pool   # low / medium / high; computed per run
   chaos_param: accepted_and_ignored       # slider is cut; API field kept so the frontend contract does not break
 
-amendments: []                  # {date, change, reason}
+amendments:
+  - date: 2026-10-17
+    change: "llm provider anthropic -> deepseek; claude-sonnet-5-5 -> deepseek-v4-pro on all four tasks; added base_url and thinking.mode=disabled"
+    reason: "Team moved off Anthropic. The swap was anticipated by llm_gateway_spec rule 10 (change models.yaml + one adapter file). Done before any case was run, so the validation re-run rule in validation_cases.yaml is not triggered. thinking.mode added because DeepSeek defaults thinking ON, which silently ignores temperature and blows the 20s hero budget."

@@ -60,3 +60,32 @@ docs/HOUR2_SIGNOFF.md
 ```
 
 Still to write by Hour 6: `prompts/{abstractor,decomposer,skeptic,translator}.md` and the `decomposer`, `skeptic`, `translator` schemas.
+
+---
+
+## 6. Amendments to the decision log
+
+D11 stands as written above. It is superseded by:
+
+| # | Supersedes | Decision | Why |
+|---|---|---|---|
+| A1 | D11 | **LLM provider = DeepSeek**, `deepseek-v4-pro` on all four tasks. `llm.base_url = https://api.deepseek.com`, `llm.api_key_env = DEEPSEEK_API_KEY`. **Thinking mode disabled on every request.** | Team moved off Anthropic. The swap was anticipated by `llm_gateway_spec.md` rule 10, so it is `models.yaml` plus one adapter file. |
+
+Two things this changes that are not obvious:
+
+- **No validation re-run is owed.** `validation_cases.yaml` requires a full re-run after any model change.
+  No case has been run yet, so the switch lands before the first call rather than after it.
+- **Thinking mode is the real hazard, not the model.** DeepSeek enables it by default at effort `high`,
+  and in thinking mode it *silently ignores* `temperature`. Left on, `temperature: 0` on the abstractor is a
+  no-op, the validation table stops being reproducible, and the chain of thought will not fit the 20s hero
+  budget. See `llm_gateway_spec.md` rules 12-13.
+
+Unverified, and honest about it: DeepSeek also serves an Anthropic-format mirror at
+`https://api.deepseek.com/anthropic`. The route exists and accepts the key, but it has **not** been tested for
+tool use or structured output. If it passes the gateway acceptance tests it becomes the cheaper swap, because
+the adapter keeps its existing shape. Until then the OpenAI-format base_url stands.
+
+Operational note: the DeepSeek account was at zero balance when this was written. Every call returns
+`Insufficient Balance` until it is topped up. Anthropic's monthly credits have no equivalent — DeepSeek is
+prepaid. At ~750k output tokens for the full 3k-paper run this costs on the order of $1-2, so a small
+top-up covers the whole project.

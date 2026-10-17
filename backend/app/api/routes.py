@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse
 
 from app.core.run_store import create_run_record, get_run_record
 from app.schemas import CollideRequest, RunCreateResponse
+from app.services.orchestration import OrchestrationService
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -17,6 +18,17 @@ async def healthcheck() -> dict[str, str]:
 @router.post("/collide", status_code=202)
 async def create_collision_run(payload: CollideRequest) -> RunCreateResponse:
     run = create_run_record(payload.text, payload.home_fields, payload.chaos)
+    orchestration = await OrchestrationService().arun(payload.text, payload.home_fields, payload.chaos)
+
+    run.update(
+        {
+            "status": orchestration["status"],
+            "abstraction": orchestration["abstraction"],
+            "candidates": orchestration["candidates"],
+            "trace": orchestration["trace"],
+            "updated_at": int(__import__("time").time()),
+        }
+    )
     return RunCreateResponse(run_id=run["run_id"])
 
 

@@ -55,9 +55,12 @@ def test_run_record_tracks_state_progression() -> None:
     run = get_run_record(run_id)
 
     assert run is not None
-    assert run["status"] == "queued"
+    assert run["status"] == "completed"
     assert run["trace"][0]["step"] == "abstracting"
     assert "meta" in run["trace"][0]
+    assert "abstraction" in run
+    assert "candidates" in run
+    assert run["candidates"]
 
     updated = transition_run_status(
         run_id,

@@ -81,3 +81,19 @@ def test_cache_only_mode_raises_without_provider_call(tmp_path, monkeypatch):
         gateway.run("abstractor", {"text": "Need a passive conformal grip."})
 
     assert provider.calls == 0
+
+
+def test_missing_api_key_falls_back_to_dry_run(monkeypatch, tmp_path):
+    monkeypatch.delenv("LLM_DRY_RUN", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    gateway = LLMGateway(
+        models_cfg=str(Path(__file__).resolve().parents[2] / "config" / "models.yaml"),
+        cache_path=str(tmp_path / "llm_cache.sqlite"),
+    )
+
+    result = gateway.run("abstractor", {"text": "Need a passive conformal grip."})
+
+    assert result.cached is False
+    assert result.usage == {"dry_run": True}
+    assert result.data["functional_problem"]

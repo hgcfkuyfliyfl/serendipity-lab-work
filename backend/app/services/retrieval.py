@@ -55,12 +55,12 @@ class RetrievalService:
         return {token.lower() for token in value.replace("-", " ").split() if token.strip()}
 
     def search(self, query: str, abstraction: dict[str, Any], *, home_fields: list[str] | None = None) -> list[dict[str, Any]]:
-        home_fields = set(home_fields or [])
+        home_field_set: set[str] = set(home_fields or [])
         matches: list[dict[str, Any]] = []
 
         for paper in self.corpus:
             source_field = str(paper.get("source_field", "unknown"))
-            if source_field in home_fields:
+            if source_field in home_field_set:
                 continue
 
             problem_score = self._text_similarity(query, str(paper.get("functional_problem", "")))

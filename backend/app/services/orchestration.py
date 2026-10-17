@@ -29,12 +29,12 @@ class OrchestrationService:
         event["meta"] = meta
         return event
 
-    def run(self, text: str, home_fields: list[str], chaos: float) -> dict[str, Any]:
+    async def arun(self, text: str, home_fields: list[str], chaos: float) -> dict[str, Any]:
         trace: list[dict[str, Any]] = [
             self._trace("abstracting", "Stripping domain terms...", task="abstractor"),
         ]
 
-        abstraction = self.gateway.run(
+        abstraction = await self.gateway.arun(
             "abstractor",
             {"text": text},
             cache_id=f"abstractor:{text[:80]}",
@@ -82,3 +82,6 @@ class OrchestrationService:
             "candidates": candidates,
             "trace": trace,
         }
+
+    def run(self, text: str, home_fields: list[str], chaos: float) -> dict[str, Any]:
+        return __import__("asyncio").run(self.arun(text, home_fields, chaos))

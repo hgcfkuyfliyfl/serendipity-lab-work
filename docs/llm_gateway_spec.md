@@ -72,7 +72,7 @@ class LLMGateway:
 7. **Final failure raises `LLMFailure`.** The gateway never returns partial or unvalidated data. Callers decide what to do (the batch job writes to the retry file; the live run falls back).
 8. **Concurrency:** one global semaphore (`llm.concurrency`) across all tasks.
 9. **Structured output:** prefer the provider's tool-use / structured-output mechanism with the schema. Still validate afterward.
-10. **Provider isolation:** all Anthropic-specific code lives in one adapter class. Swapping provider means changing `models.yaml` and one file.
+10. **Provider isolation:** all provider-specific code lives in one adapter class. Swapping provider means changing `models.yaml` and one file. This has now been exercised for real: the provider went Anthropic -> DeepSeek -> Gemini inside the Hour 2 window, and `models.yaml` plus this one adapter class were the only things that changed. If a second file has to be touched to swap providers, that is a bug in this rule.
 11. **Counters:** log cache hits, misses, retries, and token usage per task. One summary line at the end of a batch.
 12. **Thinking budget 0 on every request.** Provider is Gemini (`config/models.yaml: llm.provider`), which
     thinks by default. Send `generationConfig.thinkingConfig.thinkingBudget = 0` on **every** request, read
@@ -135,7 +135,7 @@ def run_many(task: str, items: list[dict], *, id_key: str,
 
 ## Environment
 
-`ANTHROPIC_API_KEY`, `LLM_CACHE_ONLY` (optional), `LLM_DRY_RUN` (optional; returns fixtures from `tests/fixtures/{task}.json` so UI and API work needs no key).
+`GEMINI_API_KEY`, `LLM_CACHE_ONLY` (optional), `LLM_DRY_RUN` (optional; returns fixtures from `tests/fixtures/{task}.json` so UI and API work needs no key). See `.env.example`.
 
 ## Acceptance tests (Hour 6 gate)
 

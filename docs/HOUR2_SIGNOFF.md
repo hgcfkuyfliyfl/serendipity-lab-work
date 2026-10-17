@@ -35,7 +35,9 @@ Everything that needed a decision has one. What remains is verification that nee
 I could write and decide everything above. I could not reach OpenAlex, arXiv, or PubMed from here, so nothing about paper availability is verified. Seed `status` is `unverified` for all 20 seeds.
 
 - [ ] **Huddle (15 min, all three):** agree the cut list with B as enforcer. Hand A the §9 schema and mock data, and hand B `docs/llm_gateway_spec.md`.
-- [ ] **Get keys:** `ANTHROPIC_API_KEY` and a free `OPENALEX_API_KEY`.
+- [ ] **Get keys:** ~~`ANTHROPIC_API_KEY`~~ **done — `GEMINI_API_KEY` obtained and verified with a live
+      call.** `OPENALEX_API_KEY` obtained. Both live in a gitignored `.env`; see `.env.example`.
+      (The LLM provider moved Anthropic -> DeepSeek -> Gemini; see §6 and §7.)
 - [ ] **Resolve subfields (≈5 min):** run the ingest resolver against `config/corpus.yaml`. Any non-optional name that fails to resolve needs fixing. Commit `config/corpus.lock.yaml`.
 - [ ] **Verify seed abstracts (≈15 min):** for each of the 20 seeds, confirm an abstract is retrievable (OpenAlex, then PubMed or arXiv, then `manual_paste`). Update `status`. A case with fewer than 2 verified acceptable sources is dropped. At least 5 cases must survive. Kidney exchange and ant colony are the likeliest to fail.
 - [ ] **Input-language check (≈5 min):** have A or B read each `input_text` cold and flag any word that gives away the source field. Set `input_language_check.status`.

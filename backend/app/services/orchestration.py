@@ -40,14 +40,19 @@ class OrchestrationService:
             cache_id=f"abstractor:{text[:80]}",
         )
 
+        decomposition = await self.gateway.arun(
+            "decomposer",
+            {"text": text},
+            cache_id=f"decomposer:{text[:80]}",
+        )
         trace.append(
             self._trace(
                 "decomposing",
                 "Breaking the problem into structural queries.",
                 task="decomposer",
-                cached=abstraction.cached,
-                attempt=abstraction.attempts,
-                ms=abstraction.latency_ms,
+                cached=decomposition.cached,
+                attempt=decomposition.attempts,
+                ms=decomposition.latency_ms,
             )
         )
 
@@ -62,10 +67,57 @@ class OrchestrationService:
             )
         )
 
+        reviewed_candidates: list[dict[str, Any]] = []
+        translations: list[dict[str, Any]] = []
+        for candidate in candidates:
+            review = await self.gateway.arun(
+                "skeptic",
+                {
+                    "text": text,
+                    "candidate": candidate.get("title", candidate.get("source_passage", "")),
+                },
+                cache_id=f"skeptic:{candidate.get('id', candidate.get('title', 'unknown'))}",
+            )
+            trace.append(
+                self._trace(
+                    "reviewing",
+                    "Assessing whether the candidate survives skeptical review.",
+                    task="skeptic",
+                    cached=review.cached,
+                    attempt=review.attempts,
+                    ms=review.latency_ms,
+                )
+            )
+
+            candidate_entry = {**candidate, "review": review.data}
+            reviewed_candidates.append(candidate_entry)
+
+            if review.data.get("accepted"):
+                translation = await self.gateway.arun(
+                    "translator",
+                    {
+                        "text": text,
+                        "source_concept": candidate.get("matched_on", candidate.get("title", "source concept")),
+                    },
+                    cache_id=f"translator:{candidate.get('id', candidate.get('title', 'unknown'))}",
+                )
+                trace.append(
+                    self._trace(
+                        "translating",
+                        "Translating the surviving analogy into the user's home domain.",
+                        task="translator",
+                        cached=translation.cached,
+                        attempt=translation.attempts,
+                        ms=translation.latency_ms,
+                    )
+                )
+                candidate_entry["translation"] = translation.data
+                translations.append({"candidate_id": candidate.get("id"), **translation.data})
+
         trace.append(
             self._trace(
                 "done",
-                "Abstracted problem ready for retrieval pipeline.",
+                "Completed decomposition, retrieval, review, and translation loop.",
                 task="abstractor",
                 cached=abstraction.cached,
                 attempt=abstraction.attempts,
@@ -79,7 +131,10 @@ class OrchestrationService:
             "chaos": chaos,
             "status": "completed",
             "abstraction": abstraction.data,
+            "decomposition": decomposition.data,
             "candidates": candidates,
+            "reviewed_candidates": reviewed_candidates,
+            "translations": translations,
             "trace": trace,
         }
 

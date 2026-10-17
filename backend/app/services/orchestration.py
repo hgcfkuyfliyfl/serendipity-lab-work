@@ -6,6 +6,7 @@ import time
 from typing import Any
 
 from app.core.llm_gateway import LLMGateway
+from app.services.retrieval import RetrievalService
 
 
 class OrchestrationService:
@@ -13,6 +14,7 @@ class OrchestrationService:
 
     def __init__(self) -> None:
         self.gateway = LLMGateway()
+        self.retrieval = RetrievalService()
 
     def _trace(self, step: str, message: str, *, task: str | None = None, cached: bool = False, attempt: int = 1, ms: int | None = None) -> dict[str, Any]:
         event = {
@@ -49,6 +51,17 @@ class OrchestrationService:
             )
         )
 
+        candidates = self.retrieval.search(text, abstraction.data, home_fields=home_fields)
+        trace.append(
+            self._trace(
+                "retrieving",
+                f"Retrieved {len(candidates)} candidate analogs.",
+                task="retrieval",
+                cached=False,
+                attempt=1,
+            )
+        )
+
         trace.append(
             self._trace(
                 "done",
@@ -66,5 +79,6 @@ class OrchestrationService:
             "chaos": chaos,
             "status": "completed",
             "abstraction": abstraction.data,
+            "candidates": candidates,
             "trace": trace,
         }

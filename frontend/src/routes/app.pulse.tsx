@@ -10,6 +10,10 @@ export const Route = createFileRoute("/app/pulse")({ component: Pulse });
 
 const C = 50;
 const R = 34;
+const pos = (i: number, n: number) => {
+  const a = (-90 + (360 / n) * i) * (Math.PI / 180);
+  return { x: C + R * Math.cos(a), y: C + R * Math.sin(a) };
+};
 
 function Pulse() {
   const run = useStore((s) => s.run);
@@ -23,35 +27,71 @@ function Pulse() {
   const items = useMemo(() => (run ? getResults(run) : []), [run]);
 
   useEffect(() => {
-    if (view !== "map" || !svg.current) return;
-    const mm = gsap.matchMedia();
-    mm.add("(prefers-reduced-motion: no-preference)", () => {
-      if (reduce) return;
-      gsap.from(svg.current!.querySelectorAll(".edge"), {
-        strokeDashoffset: 60,
-        strokeDasharray: 60,
-        duration: 0.7,
-        stagger: 0.08,
-        ease: "power2.out",
+    const el = svg.current;
+    if (view !== "map" || !el) return;
+    const n = items.length;
+    const edges = [...el.querySelectorAll<SVGLineElement>(".edge")];
+    const nodes = [...el.querySelectorAll<SVGGElement>(".node")];
+    const dots = [...el.querySelectorAll<SVGCircleElement>(".dot")];
+    const off = nodes.map(() => ({ x: 0, y: 0 }));
+    const prog = dots.map(() => ({ t: 0 }));
+    const calm = reduce || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const draw = () => {
+      nodes.forEach((g, i) => {
+        const b = pos(i, n);
+        g.setAttribute("transform", `translate(${off[i].x} ${off[i].y})`);
+        edges[i]?.setAttribute("x2", String(b.x + off[i].x));
+        edges[i]?.setAttribute("y2", String(b.y + off[i].y));
+        const d = dots[i];
+        if (d) {
+          const t = prog[i].t;
+          d.setAttribute("cx", String(C + (b.x + off[i].x - C) * t));
+          d.setAttribute("cy", String(C + (b.y + off[i].y - C) * t));
+          d.setAttribute("opacity", String(Math.sin(Math.PI * t) * 0.9));
+        }
       });
-      gsap.from(svg.current!.querySelectorAll(".node"), {
+    };
+    const ctx = gsap.context(() => {
+      const amp = calm ? 0.5 : 1.6;
+      off.forEach((o, i) =>
+        gsap.to(o, {
+          x: i % 2 ? amp : -amp,
+          y: i % 3 === 0 ? amp : -amp,
+          duration: (calm ? 5 : 2.2) + i * 0.4,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+        }),
+      );
+      if (calm) return;
+      prog.forEach((p, i) =>
+        gsap.to(p, {
+          t: 1,
+          duration: 1.4,
+          ease: "power1.inOut",
+          repeat: -1,
+          repeatDelay: 0.5 + i * 0.25,
+          delay: i * 0.3,
+        }),
+      );
+      gsap.from(nodes, {
         autoAlpha: 0,
-        duration: 0.4,
+        scale: 0.6,
+        transformOrigin: "50% 50%",
+        duration: 0.5,
         stagger: 0.08,
-        delay: 0.2,
-        ease: "power1.out",
       });
-    });
-    return () => mm.revert();
-  }, [view, items.length, reduce]);
+    }, el);
+    draw();
+    gsap.ticker.add(draw);
+    return () => {
+      gsap.ticker.remove(draw);
+      ctx.revert();
+    };
+  }, [view, items, reduce]);
 
   if (!run) return null;
   const sel = items.find((c) => c.id === selected);
-  const pos = (i: number) => {
-    const a = (-90 + (360 / items.length) * i) * (Math.PI / 180);
-    return { x: C + R * Math.cos(a), y: C + R * Math.sin(a) };
-  };
-
   return (
     <>
       <PageHeader
@@ -94,7 +134,7 @@ function Pulse() {
               aria-label="Relationship map"
             >
               {items.map((c, i) => {
-                const p = pos(i);
+                const p = pos(i, items.length);
                 return (
                   <line
                     key={c.id}
@@ -109,6 +149,17 @@ function Pulse() {
                   />
                 );
               })}
+              {items.map((c) => (
+                <circle
+                  key={c.id}
+                  className="dot"
+                  r="0.9"
+                  cx={C}
+                  cy={C}
+                  opacity="0"
+                  fill="currentColor"
+                />
+              ))}
               <circle
                 cx={C}
                 cy={C}
@@ -129,7 +180,7 @@ function Pulse() {
                 {run.input.homeFields[0]}
               </text>
               {items.map((c, i) => {
-                const p = pos(i);
+                const p = pos(i, items.length);
                 const on = selected === c.id;
                 return (
                   <g
@@ -149,7 +200,7 @@ function Pulse() {
                     <circle
                       cx={p.x}
                       cy={p.y}
-                      r={on ? 5 : 4}
+                      r={(on ? 1 : 0) + 3 + Math.min(c.mockScore, 100) / 40}
                       className={FIELD_FILL[c.field]}
                       stroke={on ? "currentColor" : "none"}
                       strokeWidth="0.6"

@@ -42,78 +42,87 @@ const MESH = NODES.flatMap((_, i) =>
 );
 
 function Hub() {
-  const svg = useRef<SVGSVGElement>(null);
+  const root = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState<number | null>(null);
 
   useEffect(() => {
-    const el = svg.current;
+    const el = root.current;
     if (!el) return;
-    const mm = gsap.matchMedia();
-    mm.add("(prefers-reduced-motion: no-preference)", () => {
-      const off = NODES.map(() => ({ x: 0, y: 0 }));
-      const prog = NODES.map(() => ({ t: 0 }));
-      const all = <T extends Element>(s: string) => Array.from(el.querySelectorAll<T>(s));
-      const groups = all<SVGGElement>("[data-node]");
-      const spokes = all<SVGLineElement>("[data-spoke]");
-      const webs = all<SVGLineElement>("[data-web]");
-      const dots = all<SVGCircleElement>("[data-dot]");
-      const set = (e: Element, a: Record<string, number | string>) =>
-        Object.entries(a).forEach(([k, v]) => e.setAttribute(k, String(v)));
+    // Reduced-motion devices still get a slow, small drift. Nothing is ever frozen.
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const pick = (s: string) => Array.from(el.querySelectorAll<SVGElement>(s));
+    const nodes = pick("[data-node]");
+    const spokes = pick("[data-spoke]");
+    const webs = pick("[data-web]");
+    const dots = pick("[data-dot]");
+    const off = NODES.map(() => ({ x: 0, y: 0 }));
+    const prog = NODES.map(() => ({ t: 0 }));
+    const put = (e: Element | undefined, a: Record<string, number | string>) => {
+      if (e) for (const k in a) e.setAttribute(k, String(a[k]));
+    };
 
-      const draw = () => {
-        NODES.forEach((n, i) => {
-          const x = n.x + off[i].x,
-            y = n.y + off[i].y,
-            t = prog[i].t;
-          set(groups[i], { transform: `translate(${off[i].x} ${off[i].y})` });
-          set(spokes[i], { x2: x, y2: y });
-          set(dots[i], { cx: 50 + (x - 50) * t, cy: 52 + (y - 52) * t });
-          dots[i].style.opacity = t > 0 && t < 1 ? "1" : "0";
-        });
-        webs.forEach((w, k) => {
-          const [a, b] = MESH[k];
-          set(w, {
-            x1: NODES[a].x + off[a].x,
-            y1: NODES[a].y + off[a].y,
-            x2: NODES[b].x + off[b].x,
-            y2: NODES[b].y + off[b].y,
-          });
-        });
-      };
-      gsap.ticker.add(draw);
+    const draw = () => {
+      NODES.forEach((n, i) => {
+        const x = n.x + off[i].x;
+        const y = n.y + off[i].y;
+        put(nodes[i], { transform: `translate(${off[i].x} ${off[i].y})` });
+        put(spokes[i], { x2: x, y2: y });
+        put(dots[i], { cx: 50 + (x - 50) * prog[i].t, cy: 52 + (y - 52) * prog[i].t });
+        if (dots[i]) dots[i].style.opacity = prog[i].t > 0 && prog[i].t < 1 ? "1" : "0";
+      });
+      MESH.forEach(([a, b], k) =>
+        put(webs[k], {
+          x1: NODES[a].x + off[a].x,
+          y1: NODES[a].y + off[a].y,
+          x2: NODES[b].x + off[b].x,
+          y2: NODES[b].y + off[b].y,
+        }),
+      );
+    };
 
-      NODES.forEach((_, i) => {
-        gsap.to(off[i], {
-          x: i % 2 ? 2.2 : -2.2,
-          y: i % 3 === 0 ? 2.2 : -2.2,
-          duration: 3 + i * 0.4,
+    const ctx = gsap.context(() => {
+      const amp = calm ? 1.5 : 4.5;
+      const slow = calm ? 2.5 : 1;
+      off.forEach((o, i) => {
+        gsap.to(o, {
+          x: i % 2 ? amp : -amp,
+          y: i % 3 === 0 ? amp : -amp,
+          duration: (2 + i * 0.35) * slow,
           ease: "sine.inOut",
           yoyo: true,
           repeat: -1,
         });
-        gsap.to(prog[i], {
+      });
+      if (calm) return;
+      prog.forEach((p, i) => {
+        gsap.to(p, {
           t: 1,
-          duration: 1.6,
+          duration: 1.2,
           ease: "power1.inOut",
           repeat: -1,
-          repeatDelay: 2.4 + i * 0.35,
-          delay: 1 + i * 0.5,
+          repeatDelay: 0.6 + i * 0.2,
+          delay: 0.4 + i * 0.3,
         });
       });
-      gsap.from(groups, { autoAlpha: 0, duration: 0.5, stagger: 0.1, ease: "power1.out" });
+      gsap.from(nodes, { autoAlpha: 0, duration: 0.5, stagger: 0.1, ease: "power1.out" });
       gsap.fromTo(
         el.querySelector("[data-ring]"),
         { attr: { r: 10 }, opacity: 0.6 },
-        { attr: { r: 18 }, opacity: 0, duration: 2.4, repeat: -1, ease: "power1.out" },
+        { attr: { r: 18 }, opacity: 0, duration: 1.8, repeat: -1, ease: "power1.out" },
       );
-      return () => gsap.ticker.remove(draw);
-    });
-    return () => mm.revert();
+    }, el);
+
+    draw();
+    gsap.ticker.add(draw);
+    return () => {
+      gsap.ticker.remove(draw);
+      ctx.revert();
+    };
   }, []);
 
   return (
     <svg
-      ref={svg}
+      ref={root}
       viewBox="0 0 100 100"
       className="h-full w-full overflow-visible"
       role="group"
@@ -122,7 +131,7 @@ function Hub() {
       {MESH.map(([a, b]) => (
         <line
           key={`${a}-${b}`}
-          data-web
+          data-web="1"
           x1={NODES[a].x}
           y1={NODES[a].y}
           x2={NODES[b].x}
@@ -135,18 +144,17 @@ function Hub() {
       {NODES.map((n, i) => (
         <line
           key={n.label}
-          data-spoke
+          data-spoke="1"
           x1="50"
           y1="52"
           x2={n.x}
           y2={n.y}
           strokeWidth={active === i ? 0.8 : 0.4}
-          className={`animate-draw transition-colors ${active === i ? "stroke-primary" : "stroke-border"}`}
-          style={{ animationDelay: `${i * 0.1}s` }}
+          className={active === i ? "stroke-primary" : "stroke-border"}
         />
       ))}
       <circle
-        data-ring
+        data-ring="1"
         cx="50"
         cy="52"
         r="10"
@@ -155,13 +163,13 @@ function Hub() {
         strokeWidth="0.4"
         opacity="0"
       />
-      {NODES.map((n, i) => (
+      {NODES.map((n) => (
         <circle
           key={n.label + "d"}
-          data-dot
+          data-dot="1"
           cx="50"
           cy="52"
-          r="0.9"
+          r="1.3"
           className="fill-terracotta"
           style={{ opacity: 0 }}
         />
@@ -176,7 +184,7 @@ function Hub() {
       {NODES.map((n, i) => (
         <g
           key={n.label + "n"}
-          data-node
+          data-node="1"
           tabIndex={0}
           aria-label={n.label}
           className="cursor-pointer outline-none"
@@ -186,7 +194,7 @@ function Hub() {
           onBlur={() => setActive(null)}
         >
           <circle cx={n.x} cy={n.y} r="7" fill="transparent" />
-          <circle cx={n.x} cy={n.y} r={active === i ? 5 : 4} className={`${n.c} transition-[r]`} />
+          <circle cx={n.x} cy={n.y} r={active === i ? 5 : 4} className={n.c} />
           <text
             x={n.x}
             y={n.y + 8}

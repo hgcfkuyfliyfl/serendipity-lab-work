@@ -1,0 +1,1 @@
+"""Serendipity Lab backend package."""

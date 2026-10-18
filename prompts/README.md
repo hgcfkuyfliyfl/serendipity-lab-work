@@ -29,19 +29,50 @@ You are ...
 Problem text: {{text}}
 ```
 
+## `abstractor.md` — written and live-verified
+
+**Status: written, run against `gemini-3.8-flash`, verified 3/3.** Check it yourself:
+
+```bash
+set -a; source .env; set +a
+python3 data/check_abstractor_prompt.py
+```
+
+It asserts, on the hero input, on `gecko_adhesive`, and on a jamming seed paper:
+
+- no leak in `functional_problem` or `mechanism`
+- `mechanism` is `null` for user input (D14) and present for a paper
+- output validates against the full untranslated schema
+
+| Input | leak-free | `mechanism` |
+|---|---|---|
+| Hero (robotics → physics) | yes | `null` |
+| `gecko_adhesive` | yes | `null` |
+| Jamming seed paper | yes | present |
+
+The hero input abstracts to *"Conform to an arbitrary boundary and immobilise what it encloses,
+without item-specific configuration and without continuous sensing."* No robotics, no physics.
+
 ## The one thing that can invalidate the result
 
-The abstractor **will name the answer if the prompt lets it.** Measured on the hero input: a loose
-prompt returned `domain_tags: ['granular_jamming', ...]` and a mechanism reading "granular material".
-That puts the correct collision directly into the query, so retrieval finds the jamming papers no
-matter what the index holds. It demos well and proves nothing.
+The abstractor **will name the answer if the prompt lets it.** With a loose prompt the same model
+returned `domain_tags: ['granular_jamming', ...]` and a mechanism reading "granular material" for
+the hero input. That puts the correct collision directly into the query, so retrieval finds the
+jamming papers no matter what the index holds. It demos well and proves nothing.
 
-The fix is the prompt. With field meanings named and solution-naming explicitly forbidden, the same
-input produced "Envelop and securely retain items of unpredictable geometry..." — abstract, no leak.
+So **the few-shots are load-bearing, not polish.** They are what took that output to the line
+above. Gateway rule 17 turns a leak into a failed call rather than a cached one, and
+`data/check_abstractor_prompt.py` fails if a leak reappears.
 
-So **few-shots are load-bearing, not polish.** Rule 17 of
-[`docs/llm_gateway_spec.md`](../docs/llm_gateway_spec.md) adds a leak check so a leak fails the call
-instead of being cached.
+## Still to write by Hour 6
+
+`decomposer.md`, `skeptic.md`, `translator.md`, and the `decomposer` / `skeptic` / `translator`
+schemas. All four are wired into `config/models.yaml` already; only the files are missing.
+
+One trap already measured, for the three remaining prompts: Gemini cannot express a nullable
+field. If a field is in `required`, the model satisfies it with the **literal string `"null"`**,
+which is truthy downstream. Drop nullable fields from `required` and normalise `"null"` / `"none"`
+/ `"n/a"` / `""` to `None`. See gateway rule 15.
 
 ## Provider
 

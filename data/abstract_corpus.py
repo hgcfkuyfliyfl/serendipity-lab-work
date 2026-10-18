@@ -136,7 +136,13 @@ def validate(abstraction, schema):
 
 
 def build_prompt_inputs(rec):
-    return {"title": rec["title"], "abstract": rec["abstract"]}
+    """One placeholder, {{text}}, for both corpus papers and user input.
+
+    prompts/abstractor.md references a single `{{text}}`, so this must not introduce
+    `{{title}}`/`{{abstract}}`: the gateway spec says a missing placeholder raises, and the
+    same prompt file has to work for the live user-input path too.
+    """
+    return {"text": f"Title: {rec['title']}\n\n{rec['abstract']}"}
 
 
 def main():

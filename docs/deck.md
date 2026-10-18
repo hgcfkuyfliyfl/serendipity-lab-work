@@ -48,21 +48,27 @@ Nothing here is final copy. Speaker notes are the part that matters and they are
 
 ### The abstraction on this slide
 
-**Provisional — real system output, not hand-written.** Captured from a live
-`gemini-3.8-flash` run of the abstractor with the anti-leak prompt, truncated here for the slide:
+**Real system output.** Captured from a live `gemini-3.8-flash` run of
+`prompts/abstractor.md` — the actual prompt, not an illustration — and verified
+leak-free by `data/check_abstractor_prompt.py`:
 
-> Envelop and securely retain items of unpredictable geometry and mechanical compliance without
-> needing prior knowledge of their contours or individualization…
+> Conform to an arbitrary boundary and immobilise what it encloses, without
+> item-specific configuration and without continuous sensing.
 
-The full recorded output was:
+The full recorded output:
 
 ```json
 {
-  "functional_problem": "Envelop and securely retain items of unpredictable geometry and mechanical
-                         compliance without needing prior knowledge of their contours or individuali…",
-  "mechanism": "Reversible transition of an interface medium from an adaptable fluid-like state to a
-                rigid load-supporting sta…",
-  "domain_tags": ["end effector", "gripper", "produce", "mugs", "tools", "force sensing"]
+  "functional_problem": "Conform to an arbitrary boundary and immobilise what it encloses, without
+                         item-specific configuration and without continuous sensing.",
+  "constraints": [
+    "must work across unknown and irregular shapes",
+    "must not require per-item setup",
+    "must hold firmly once engaged",
+    "must use minimal sensing"
+  ],
+  "mechanism": null,
+  "domain_tags": ["end effector", "gripper", "mugs", "tools", "produce", "force sensing"]
 }
 ```
 
@@ -76,9 +82,13 @@ The design target the abstraction was written against, from
 > Say that explicitly: *"the system's own words contain neither 'gripper' nor 'granular'. The match is
 > not doing keyword work."* That is the proof of the insight in one breath.
 >
+> This matters more than it looks. With a looser prompt the same model returned
+> `domain_tags: ['granular_jamming', ...]` — the answer, handed to the search. It would have demoed
+> beautifully and proved nothing. The few-shots in `prompts/abstractor.md` are what prevent it, and
+> `data/check_abstractor_prompt.py` fails the build if a leak reappears.
+>
 > **Non-negotiable rule:** a hand-written abstraction is never shown as if the system produced it.
-> Either this is real output or it is labelled as an illustration. By Hour 6 it must be real output
-> from the final prompt, regenerated — not this capture.
+> Regenerate this from the final prompt before Hour 6 — one API call.
 
 ---
 

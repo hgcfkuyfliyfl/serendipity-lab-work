@@ -81,6 +81,26 @@ def fetch(url, params=None, headers=None, timeout=30, tries=2):
     return None
 
 
+def looks_like_citation_stub(text):
+    """True when OpenAlex's 'abstract' is actually a bibliographic citation.
+
+    Measured on Gale 1962 'College admissions and the stability of marriage': its
+    abstract_inverted_index holds
+        "(2013). College Admissions and the Stability of Marriage. The American
+         Mathematical Monthly: Vol. 120, No. 5, pp. 386-391."
+    which is citation metadata, not an abstract. Left unchecked this would enter the
+    corpus as a "paper" whose only text is its own reference line - and if it had cleared
+    the 400-char rule it would have been abstracted into the index as if it were prose.
+    Detected explicitly so the reason is honest rather than 'too short'.
+    """
+    if not text:
+        return False
+    t = text.strip()
+    starts_as_citation = bool(re.match(r"^\(?\d{4}\)?\.", t))
+    has_biblio = bool(re.search(r"\b(Vol\.|pp\.|No\.|pp\s+\d)", t))
+    return starts_as_citation and has_biblio
+
+
 def rebuild_abstract(inverted_index):
     """OpenAlex gives {word: [positions]}. Put the words back in order."""
     if not inverted_index:
@@ -216,7 +236,10 @@ def verify_seed(seed, api_key):
         title_sim=round(oa["_title_sim"], 3),
     )
 
-    if row["retracted"]:
+    if looks_like_citation_stub(abstract):
+        row.update(verdict="manual_paste",
+                   note="OpenAlex 'abstract' is a citation stub, not an abstract")
+    elif row["retracted"]:
         row.update(verdict="missing", note="RETRACTED; corpus.yaml filters is_retracted=false")
     elif oa.get("type") != "article":
         row.update(verdict="manual_paste",
@@ -225,6 +248,8 @@ def verify_seed(seed, api_key):
         row.update(verdict="manual_paste", note="no abstract in OpenAlex; trying fallbacks")
         fb = europepmc_lookup(title, year) or arxiv_lookup(title, year)
         time.sleep(0.35)
+        if fb and looks_like_citation_stub(fb["abstract"]):
+            fb = None
         if fb and len(fb["abstract"]) >= MIN_CHARS:
             row.update(verdict="verified", source=fb["source"],
                        abstract_chars=len(fb["abstract"]),

@@ -91,11 +91,16 @@ class LLMGateway:
     - **Drop any union type.** Do not fake a nullable field as a required string. See rule 15.
     - Keep `propertyOrdering`. It makes the abstraction legible to a human auditor.
 15. **Nullable fields: omit from `required`, and trust the prompt — not the schema.** D14 makes `mechanism`
-    nullable for user input. If it is sent as a required `STRING`, the model **invents one** rather than
-    returning null (verified: given a gecko input it produced "Micro- and nanostructures..." for a problem
-    that proposes no approach). So for user-input calls leave `mechanism` out of `required`, and let the
-    prompt state that it may be null. Corpus papers keep `mechanism` required, and the batch job retries on
-    null, which is the existing rule.
+    nullable for user input. Gemini cannot express `["string","null"]` (rule 14), so a nullable field left
+    in `required` is forced to `STRING` and the model satisfies it with the **literal text `"null"`**.
+    Measured: with `mechanism` in `required`, the hero input came back with `"mechanism": "null"` — truthy
+    downstream, and indexable as though it were a real mechanism. So:
+    - For calls that allow null, **drop the field from `required`** and let the prompt state it may be null.
+    - After parsing, **normalise the literal strings** `"null"`, `"none"`, `"n/a"`, `""` to `None` before
+      validation. This is not paranoia: it is what the model actually returns.
+    - Corpus papers keep `mechanism` required, and the batch job retries on null, which is the existing rule.
+    - A reference implementation of this translation is `data/check_abstractor_prompt.py`; `translate()`
+      there is the exact mapping to copy.
 16. **Always validate after.** Post-validate every response against the **full, untranslated**
     `config/schemas/*.schema.json`. That is the only place `minLength`, `maxLength` and nullability are
     actually enforced, and it is what the cache stores.

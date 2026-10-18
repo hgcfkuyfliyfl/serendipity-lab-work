@@ -86,12 +86,60 @@ The pipeline itself is built and verified:
 `data/resolve_subfields.py` → `data/ingest_corpus.py` → `data/abstract_corpus.py` →
 `data/build_index.py`, each resumable, with `requirements.txt` pinning the environment.
 
-**Two remaining items are cheap and should not be skipped:**
+**Two remaining items are cheap and should not be skipped:
 
 1. **`docs/field_qa.md`** — 20 random titles per field, read by hand. 160 reads catches a
    wrong field tag before 3,000 papers are abstracted with it.
+   Regenerate with `python3 data/sample_field_qa.py`; seeded, so the sample is identical every
+   time and cannot be accused of being cherry-picked. **~40 minutes.**
 2. **The 600-paper pilot** before the full run. The LLM provider changed twice inside this
    window, and abstraction quality is the entire thesis.
+
+## 8. Third amendment status: `prompts/abstractor.md` written and tested
+
+The abstractor prompt exists and has been **run live against `gemini-3.8-flash` and verified**,
+not merely drafted. `data/check_abstractor_prompt.py` asserts on the three cases that matter
+and currently passes 3/3:
+
+| Input | leak-free | `mechanism` |
+|---|---|---|
+| Hero (robotics → physics) | yes | `null`, as D14 requires |
+| `gecko_adhesive` (dev) | yes | `null`, as D14 requires |
+| A jamming seed **paper** | yes | present, as required for corpus papers |
+
+The hero input abstracts to *"Conform to an arbitrary boundary and immobilise what it encloses,
+without item-specific configuration and without continuous sensing."* — no robotics, no physics,
+and `mechanism` correctly null because the input states a problem and not an approach.
+
+This is what makes the few-shots load-bearing rather than decorative. The same model with a
+looser prompt returned `domain_tags: ['granular_jamming', ...]` for the same input, which places
+the answer in the query and makes retrieval self-fulfilling.
+
+**Two defects found by running it, both now fixed and both recorded for B:**
+
+1. Gemini cannot express `["string","null"]`, so a nullable field left in `required` is forced to
+   `STRING` and the model satisfies it with the literal text `"null"`. Truthy downstream, and
+   indexable as a real mechanism. Fixed by dropping nullable fields from `required` and
+   normalising `"null"`/`"none"`/`"n/a"`/`""` to `None`. Gateway rule 15.
+2. `data/verify_seeds.py` now rejects OpenAlex **citation stubs** as abstracts. Measured: Gale
+   1962's `abstract_inverted_index` holds
+   `"(2013). College Admissions and the Stability of Marriage. The American Mathematical
+   Monthly: Vol. 120, No. 5, pp. 386-391."` — bibliographic metadata. Unchecked it would have
+   been abstracted into the index as though it were prose.
+
+**Seed recovery outcome, stated plainly:** 3 of the 4 `manual_paste` seeds are **not
+recoverable** from any open source. Shapley 1974 and Nakagaki 2000 have no abstract in OpenAlex,
+Europe PMC or arXiv; Gale 1962's only OpenAlex "abstract" is the citation stub above; Liu 2010
+is `type=review` and is excluded by the corpus type filter. Recovering them needs a human with
+journal access. **None is gate-blocking** — every surviving case already clears 2 verified — so
+this is a nice-to-have, not a blocker.
+
+## 9. Third provider-shape finding
+
+The one remaining hard dependency is **Person B's gateway**. `prompts/abstractor.md` and
+`data/abstract_corpus.py` are both ready and `--dry-run` clean, but a live batch needs
+`backend/app/gateway.py` exposing `LLMGateway.run(task, inputs, cache_id=...)`. Until it exists,
+`data/corpus/abstractions.jsonl` cannot be written and the abstraction index cannot be built.
 
 ## 4. Pre-registration statement
 

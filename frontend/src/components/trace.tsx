@@ -80,8 +80,45 @@ export function TraceRow({ e, index }: { e: TraceEvent; index: number }) {
 }
 
 export function TraceList({ run }: { run: Run }) {
+  const listRef = useRef<HTMLOListElement>(null);
+  const shown = useRef(0);
+
+  // Each row slides in once, as its event arrives. Rows already on screen are left
+  // alone, so nothing re-animates and nothing moves that has no new data behind it.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const rows = Array.from(list.children).slice(shown.current);
+    shown.current = list.children.length;
+    if (!rows.length) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const tween = gsap.from(rows, {
+      y: 6,
+      opacity: 0,
+      duration: 0.25,
+      ease: "power2.out",
+      stagger: 0.04,
+      clearProps: "opacity,transform",
+    });
+    // If the next event lands mid-flight, finish this one rather than reverting it:
+    // a half-reverted row would sit faded with nothing to explain why.
+    return () => {
+      tween.progress(1);
+      tween.kill();
+      for (const row of rows) {
+        const el = row as HTMLElement;
+        el.style.removeProperty("opacity");
+        el.style.removeProperty("transform");
+      }
+    };
+  }, [run.trace.length]);
+
+  useEffect(() => {
+    shown.current = 0;
+  }, [run.id]);
+
   return (
-    <ol aria-label="Agent workflow steps">
+    <ol ref={listRef} aria-label="Agent workflow steps">
       {run.trace.map((e, i) => (
         <TraceRow key={e.id} e={e} index={i} />
       ))}

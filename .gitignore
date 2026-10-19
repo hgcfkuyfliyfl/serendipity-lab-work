@@ -49,3 +49,8 @@ Thumbs.db
 logs/
 # Local LLM response cache
 cache/
+
+# Build output
+frontend/.output/
+frontend/.wrangler/
+frontend/.nitro/

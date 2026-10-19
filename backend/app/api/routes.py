@@ -1,11 +1,12 @@
 import json
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from app.core.run_store import create_run_record, get_run_record
 from pydantic import ValidationError
 
+from app.core import rate_limit
+from app.core.run_store import create_run_record, get_run_record
 from app.schemas import CollideRequest, ResultEvent, RunCreateResponse
 from app.services.orchestration import OrchestrationService
 
@@ -18,7 +19,9 @@ async def healthcheck() -> dict[str, str]:
 
 
 @router.post("/collide", status_code=202)
-async def create_collision_run(payload: CollideRequest) -> RunCreateResponse:
+async def create_collision_run(payload: CollideRequest, request: Request) -> RunCreateResponse:
+    # A run costs several model calls, so it is rate limited per client.
+    rate_limit.check(request)
     run = create_run_record(payload.text, payload.home_fields, payload.chaos)
     orchestration = await OrchestrationService().arun(payload.text, payload.home_fields, payload.chaos)
 

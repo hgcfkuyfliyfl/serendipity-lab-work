@@ -1,11 +1,26 @@
+import secrets
 import time
 from typing import Any
+
+# Runs live in memory only. Without a cap the dict grows for as long as the
+# process runs, so a stream of requests becomes a memory-exhaustion attack.
+# Oldest runs are evicted once the cap is reached.
+MAX_RUNS = 200
 
 RUN_STORE: dict[str, dict[str, Any]] = {}
 
 
+def _evict_oldest() -> None:
+    while len(RUN_STORE) >= MAX_RUNS:
+        oldest = next(iter(RUN_STORE))
+        RUN_STORE.pop(oldest, None)
+
+
 def create_run_record(text: str, home_fields: list[str], chaos: float) -> dict[str, Any]:
-    run_id = f"run_{int(time.time() * 1000)}_{len(RUN_STORE) + 1}"
+    _evict_oldest()
+    # A random suffix, so a run id cannot be guessed from the clock and someone
+    # else's run read back off the stream endpoint.
+    run_id = f"run_{int(time.time() * 1000)}_{secrets.token_urlsafe(9)}"
     timestamp = int(time.time())
     record = {
         "run_id": run_id,

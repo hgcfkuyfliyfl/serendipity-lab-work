@@ -1,4 +1,6 @@
-fastapi==0.120.4
+# Pinned to versions with no known advisories (pip-audit clean on 2026-10-19).
+fastapi==0.147.0
+starlette==1.9.0
 uvicorn==0.38.0
 pydantic==2.13.5
 httpx==0.28.1
@@ -7,4 +9,4 @@ PyYAML==6.0.3
 python-dotenv==1.2.2
 
 # Tests
-pytest==8.4.2
+pytest==9.1.1

@@ -4,7 +4,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.core.run_store import create_run_record, get_run_record
-from app.schemas import CollideRequest, RunCreateResponse
+from pydantic import ValidationError
+
+from app.schemas import CollideRequest, ResultEvent, RunCreateResponse
 from app.services.orchestration import OrchestrationService
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -40,7 +42,20 @@ async def stream_run(run_id: str):
         raise HTTPException(status_code=404, detail="Run not found")
 
     async def event_generator():
-        for trace_event in run["trace"]:
+        trace = run["trace"]
+        # Contract order: trace events, then results, then the final "done" trace.
+        for trace_event in (e for e in trace if e["step"] != "done"):
+            yield f"event: {trace_event['type']}\ndata: {json.dumps(trace_event)}\n\n"
+
+        for raw in run.get("results", []):
+            try:
+                result = ResultEvent(**raw)
+            except ValidationError:
+                # Drop rule: anything that fails the contract (no passage, no mapping) is never shown.
+                continue
+            yield f"event: result\ndata: {result.model_dump_json()}\n\n"
+
+        for trace_event in (e for e in trace if e["step"] == "done"):
             yield f"event: {trace_event['type']}\ndata: {json.dumps(trace_event)}\n\n"
 
         status_event = {

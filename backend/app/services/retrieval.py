@@ -75,6 +75,11 @@ class RetrievalService:
                     "source_field": source_field,
                     "structural_score": round(float(combined), 4),
                     "matched_on": matched_on,
+                    "abstract": paper.get("abstract", ""),
+                    "year": paper.get("year"),
+                    "venue": paper.get("venue"),
+                    "doi": paper.get("doi"),
+                    "corpus": "stub" if paper.get("stub", True) else "index",
                     "hypothesis": paper.get("abstract", ""),
                     "source_passage": paper.get("abstract", ""),
                     "mapping": [

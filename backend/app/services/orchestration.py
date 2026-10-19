@@ -140,6 +140,7 @@ class OrchestrationService:
 
         reviewed_candidates: list[dict[str, Any]] = []
         results: list[dict[str, Any]] = []
+        dropped: list[dict[str, Any]] = []
 
         for loop_index in range(3):
             round_candidates = candidate_pool if loop_index == 0 else self._dedupe_candidates(candidate_pool)
@@ -188,20 +189,46 @@ class OrchestrationService:
                     )
                     candidate_entry["translation"] = translation.data
                     payload = translation.data if isinstance(translation.data, dict) else {}
-                    if payload.get("source_passage") and payload.get("mapping"):
-                        results.append(
+                    # Honesty rule: the source passage must come from the retrieved
+                    # paper, never from the model. The translator only supplies the
+                    # hypothesis, the mapping and the reviewer note.
+                    passage = str(candidate.get("abstract") or candidate.get("source_passage") or "").strip()
+                    mapping = payload.get("mapping") or []
+                    # Drop rule: no passage or no mapping means the candidate is never shown.
+                    if passage and mapping:
+                        result = {
+                            "id": candidate.get("id", f"candidate_{len(results) + 1}"),
+                            "title": candidate.get("title", "Candidate"),
+                            "source_field": candidate.get("source_field", "unknown"),
+                            "structural_score": float(candidate.get("structural_score", 0.0)),
+                            "matched_on": candidate.get("matched_on", "problem"),
+                            "heresy": "medium",
+                            "hypothesis": payload.get("hypothesis", candidate.get("hypothesis", "")),
+                            "source_passage": passage,
+                            "mapping": mapping,
+                            "reviewer_note": payload.get("reviewer_note", ""),
+                        }
+                        for optional in ("year", "venue", "doi"):
+                            value = candidate.get(optional)
+                            if value is not None:
+                                result[optional] = value
+                        results.append(result)
+                    else:
+                        dropped.append(
                             {
-                                "id": candidate.get("id", f"candidate_{len(results) + 1}"),
-                                "title": candidate.get("title", "Candidate"),
-                                "source_field": candidate.get("source_field", "unknown"),
-                                "structural_score": float(candidate.get("structural_score", 0.0)),
-                                "matched_on": candidate.get("matched_on", "problem"),
-                                "heresy": "medium",
-                                "hypothesis": payload.get("hypothesis", candidate.get("hypothesis", "")),
-                                "source_passage": str(payload["source_passage"]),
-                                "mapping": payload.get("mapping", []),
-                                "reviewer_note": payload.get("reviewer_note", ""),
+                                "id": candidate.get("id", "unknown"),
+                                "title": candidate.get("title", ""),
+                                "reason": "no source passage" if not passage else "no mapping",
                             }
+                        )
+                        trace.append(
+                            self._trace(
+                                "reviewing",
+                                f"Dropped {candidate.get('title', 'a candidate')}: no grounded passage and mapping.",
+                                task="drop_rule",
+                                cached=False,
+                                attempt=1,
+                            )
                         )
                 else:
                     rewritten = await self._rewrite_query(text, candidate, review.data, loop_index)
@@ -228,7 +255,7 @@ class OrchestrationService:
             trace.append(
                 self._trace(
                     "ranking",
-                    f"Ranked {len(results)} grounded results by structural fit.",
+                    f"Ranked {len(results)} grounded results by structural fit. {len(dropped)} dropped for missing provenance.",
                     task="ranking",
                     cached=False,
                     attempt=1,
@@ -276,6 +303,7 @@ class OrchestrationService:
                 for item in results
             ],
             "results": results,
+            "dropped": dropped,
             "trace": trace,
         }
 

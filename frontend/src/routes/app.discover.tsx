@@ -130,7 +130,7 @@ function Discover() {
                 aria-invalid={!!error && text.trim().length < MIN}
                 aria-describedby="problem-help"
                 placeholder="Describe your problem in your own field's words…"
-                className="mt-2 block w-full resize-none bg-transparent font-serif text-2xl font-semibold leading-snug outline-none placeholder:font-normal placeholder:text-muted-foreground/50 md:text-3xl"
+                className="mt-2 block w-full resize-none rounded-sm bg-transparent font-serif text-2xl font-semibold leading-snug outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-card placeholder:font-normal placeholder:text-muted-foreground/50 md:text-3xl"
               />
               <div id="problem-help" className="mt-2 flex justify-between gap-4 text-xs">
                 <span

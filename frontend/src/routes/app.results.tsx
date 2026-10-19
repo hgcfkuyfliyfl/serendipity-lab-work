@@ -102,19 +102,23 @@ function Results() {
       <PageHeader
         eyebrow="Results"
         title={
-          groundedCount === all.length
-            ? `${all.length} cross-domain candidates`
-            : `${groundedCount} grounded, ${all.length - groundedCount} ungrounded`
+          all.length === 0
+            ? "No results"
+            : groundedCount === all.length
+              ? `${all.length} cross-domain candidates`
+              : `${groundedCount} grounded, ${all.length - groundedCount} ungrounded`
         }
         aside={
           <MockTag>
-            {all[0]?.live
-              ? "Live model output, not verified"
-              : all[0]?.fixture
-                ? "Placeholder scores"
-                : all[0]?.corpus
-                  ? "Structural scores, not validated"
-                  : "Scores are demo values"}
+            {all.length === 0
+              ? "Nothing to show"
+              : all[0]?.live
+                ? "Live model output, not verified"
+                : all[0]?.fixture
+                  ? "Placeholder scores"
+                  : all[0]?.corpus
+                    ? "Structural scores, not validated"
+                    : "Scores are demo values"}
           </MockTag>
         }
       >
@@ -132,7 +136,10 @@ function Results() {
         </p>
       )}
 
-      <div ref={statRef} className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div
+        ref={statRef}
+        className={`mb-6 grid-cols-2 gap-3 md:grid-cols-4 ${all.length === 0 ? "hidden" : "grid"}`}
+      >
         {[
           ["Candidates", all.length],
           ["Fields reached", fields.length],
@@ -150,8 +157,9 @@ function Results() {
         ))}
       </div>
 
+      {/* Nothing to filter when the run returned nothing, so the controls stay out of the way. */}
       <form
-        className="mb-6 flex flex-wrap items-end gap-4 text-sm"
+        className={`mb-6 flex-wrap items-end gap-4 text-sm ${all.length === 0 ? "hidden" : "flex"}`}
         aria-label="Filter and sort"
         onSubmit={(e) => e.preventDefault()}
       >

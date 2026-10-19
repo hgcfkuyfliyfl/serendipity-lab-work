@@ -51,9 +51,10 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     body: (
       <>
         <p>
-          Saved ideas and your demo sign-in live in your own browser&rsquo;s local storage, on your
-          device. They are not sent to us, and we have no account database. Clearing your browser
-          data removes them.
+          Your demo sign-in and the last results you looked at are kept in your own browser&rsquo;s
+          local storage, on your device. Saved ideas are weaker still: they live only in the open
+          tab and disappear when you reload. None of it is sent to us, and we have no account
+          database.
         </p>
         <p>
           The sign-in screen is a demo. The password you type is never sent anywhere and is never

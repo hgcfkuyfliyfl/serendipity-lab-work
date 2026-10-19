@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass, field
 
@@ -12,8 +14,10 @@ class Settings:
     """Application settings derived from the project environment template in .env.example."""
 
     app_name: str = "serendipity-lab"
-    environment: str = "development"
-    debug: bool = True
+    environment: str = field(default_factory=lambda: os.getenv("ENVIRONMENT", "development"))
+    # Off unless DEBUG is explicitly switched on. Debug output in production leaks
+    # paths, settings and stack traces to anyone who can trigger an error.
+    debug: bool = field(default_factory=lambda: _get_bool_env("DEBUG"))
     chroma_collection: str = "serendipity_abstractions"
     max_retries: int = 3
     timeout_seconds: int = 30

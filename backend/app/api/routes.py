@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import json
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from pydantic import ValidationError
+
+from app.core import rate_limit
 from app.core.run_store import create_run_record, get_run_record
-from app.schemas import CollideRequest, RunCreateResponse
+from app.schemas import CollideRequest, ResultEvent, RunCreateResponse
 from app.services.orchestration import OrchestrationService
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -16,7 +21,9 @@ async def healthcheck() -> dict[str, str]:
 
 
 @router.post("/collide", status_code=202)
-async def create_collision_run(payload: CollideRequest) -> RunCreateResponse:
+async def create_collision_run(payload: CollideRequest, request: Request) -> RunCreateResponse:
+    # A run costs several model calls, so it is rate limited per client.
+    rate_limit.check(request)
     run = create_run_record(payload.text, payload.home_fields, payload.chaos)
     orchestration = await OrchestrationService().arun(payload.text, payload.home_fields, payload.chaos)
 
@@ -40,7 +47,20 @@ async def stream_run(run_id: str):
         raise HTTPException(status_code=404, detail="Run not found")
 
     async def event_generator():
-        for trace_event in run["trace"]:
+        trace = run["trace"]
+        # Contract order: trace events, then results, then the final "done" trace.
+        for trace_event in (e for e in trace if e["step"] != "done"):
+            yield f"event: {trace_event['type']}\ndata: {json.dumps(trace_event)}\n\n"
+
+        for raw in run.get("results", []):
+            try:
+                result = ResultEvent(**raw)
+            except ValidationError:
+                # Drop rule: anything that fails the contract (no passage, no mapping) is never shown.
+                continue
+            yield f"event: result\ndata: {result.model_dump_json()}\n\n"
+
+        for trace_event in (e for e in trace if e["step"] == "done"):
             yield f"event: {trace_event['type']}\ndata: {json.dumps(trace_event)}\n\n"
 
         status_event = {

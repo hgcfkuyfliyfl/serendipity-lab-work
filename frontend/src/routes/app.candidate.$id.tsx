@@ -25,7 +25,9 @@ export const Route = createFileRoute("/app/candidate/$id")({ component: Inspecto
 function Block({ title, items, open }: { title: string; items: string[]; open?: boolean }) {
   return (
     <details open={open} className="group border-b border-ink-line py-3">
-      <summary className="cursor-pointer text-sm font-medium marker:text-ochre">{title}</summary>
+      <summary className="cursor-pointer text-sm font-medium marker:text-ochre-ink">
+        {title}
+      </summary>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-muted">
         {items.map((i) => (
           <li key={i}>{i}</li>
@@ -158,7 +160,7 @@ function Inspector() {
                   role="status"
                   className="mt-3 flex gap-3 rounded-md border border-dashed border-terracotta/60 bg-card p-5 text-sm"
                 >
-                  <FileWarning className="h-5 w-5 shrink-0 text-terracotta" aria-hidden />
+                  <FileWarning className="h-5 w-5 shrink-0 text-terracotta-ink" aria-hidden />
                   <div>
                     <p className="font-medium">Incomplete evidence</p>
                     <p className="mt-1 text-muted-foreground">
@@ -237,7 +239,10 @@ function Inspector() {
           ) : (
             <>
               <div className="mt-3 flex gap-6">
-                <ScoreBar value={c.mockScore} label={c.live ? "Model estimate" : "Demo score"} />
+                <ScoreBar
+                  value={c.mockScore}
+                  label={c.live ? "Model estimate" : c.corpus ? "Structural score" : "Demo score"}
+                />
                 {c.reviewerConfidence !== undefined && (
                   <ScoreBar value={c.reviewerConfidence} label="Confidence" />
                 )}

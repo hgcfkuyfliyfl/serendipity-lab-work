@@ -63,8 +63,15 @@ class _GeminiProvider:
             },
         }
 
-        url = f"{self.base_url.rstrip('/')}/models/{self.model}:generateContent?key={self.api_key}"
-        response = httpx.post(url, json=payload, timeout=self.timeout_s)
+        # The key goes in a header, never in the URL: query strings end up in
+        # proxy logs, error messages and tracebacks.
+        url = f"{self.base_url.rstrip('/')}/models/{self.model}:generateContent"
+        response = httpx.post(
+            url,
+            json=payload,
+            headers={"x-goog-api-key": self.api_key},
+            timeout=self.timeout_s,
+        )
         response.raise_for_status()
         body = response.json()
         if "candidates" not in body or not body["candidates"]:
@@ -136,7 +143,10 @@ class LLMGateway:
         self.cache_path = Path(cache_path) if cache_path else (self.root / self.llm_cfg.get("cache", {}).get("path", "cache/llm_cache.sqlite"))
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
         self._cache_conn = self._connect_cache()
-        self._semaphore = asyncio.Semaphore(int(self.llm_cfg.get("concurrency", 1)))
+        # Built on first use, inside the running loop. On Python 3.9 creating a
+        # Semaphore outside a loop raises "There is no current event loop".
+        self._concurrency = max(1, int(self.llm_cfg.get("concurrency", 1)))
+        self._semaphore: "asyncio.Semaphore | None" = None
 
     def _connect_cache(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.cache_path)
@@ -275,6 +285,12 @@ class LLMGateway:
     @staticmethod
     def _dry_run_enabled() -> bool:
         return os.getenv("LLM_DRY_RUN", "").strip().lower() in {"1", "true", "yes", "on"}
+
+    def _get_semaphore(self) -> "asyncio.Semaphore":
+        """Create the semaphore on first use, inside the running loop."""
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self._concurrency)
+        return self._semaphore
 
     async def arun(self, task: str, inputs: dict[str, Any], *, cache_id: str | None = None, run_id: str | None = None) -> LLMResult:
         task_cfg = self.tasks.get(task)

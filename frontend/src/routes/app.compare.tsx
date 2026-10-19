@@ -86,7 +86,7 @@ function Compare() {
                 <Link
                   to="/app/candidate/$id"
                   params={{ id: c.id }}
-                  className="mt-2 inline-block text-sm text-primary hover:underline"
+                  className="mt-2 inline-flex min-h-11 items-center text-sm text-primary hover:underline sm:min-h-0"
                 >
                   Inspect evidence
                 </Link>

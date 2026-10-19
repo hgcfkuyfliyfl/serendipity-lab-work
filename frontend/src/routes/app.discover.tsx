@@ -5,6 +5,7 @@ import { btn, Chip, MockTag, PageHeader } from "@/components/lab";
 import { TraceMini } from "@/components/trace";
 import { FIELDS, HERO_ABSTRACTION, HERO_TEXT, SAMPLE_SCENARIOS } from "@/lib/mock-data";
 import { FIXED } from "@/lib/serendipity";
+import { isApiConfigured } from "@/lib/api";
 import { actions, useStore } from "@/lib/store";
 import { isHeroInput } from "@/lib/service";
 import type { Field } from "@/lib/types";
@@ -66,7 +67,15 @@ function Discover() {
       <PageHeader
         eyebrow="Discover"
         title="Find Cross-Domain Collisions"
-        aside={<MockTag>{isHero ? "Cached fixture" : "Live model, unverified"}</MockTag>}
+        aside={
+          <MockTag>
+            {isHero
+              ? "Cached fixture"
+              : isApiConfigured()
+                ? "Live backend"
+                : "Live model, unverified"}
+          </MockTag>
+        }
       >
         Describe your research problem in plain terms. The agent strips the domain words, then looks
         for problems with the same structure in other fields.
@@ -121,12 +130,12 @@ function Discover() {
                 aria-invalid={!!error && text.trim().length < MIN}
                 aria-describedby="problem-help"
                 placeholder="Describe your problem in your own field's words…"
-                className="mt-2 block w-full resize-none bg-transparent font-serif text-2xl font-semibold leading-snug outline-none placeholder:font-normal placeholder:text-muted-foreground/50 md:text-3xl"
+                className="mt-2 block w-full resize-none rounded-sm bg-transparent font-serif text-2xl font-semibold leading-snug outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-card placeholder:font-normal placeholder:text-muted-foreground/50 md:text-3xl"
               />
               <div id="problem-help" className="mt-2 flex justify-between gap-4 text-xs">
                 <span
                   className={
-                    error ? "flex items-center gap-1 text-terracotta" : "text-muted-foreground"
+                    error ? "flex items-center gap-1 text-terracotta-ink" : "text-muted-foreground"
                   }
                   role={error ? "alert" : undefined}
                 >
@@ -191,6 +200,14 @@ function Discover() {
                 <strong className="font-medium">Cached fixture.</strong> Running this replays a
                 frozen run. Real papers, passages and DOIs; placeholder scores. No live model and no
                 corpus are used.
+              </>
+            ) : isApiConfigured() ? (
+              <>
+                <strong className="font-medium">Live backend run.</strong> This text has no fixture.
+                Running it sends your text to the team&rsquo;s API, which abstracts it, searches the
+                corpus with your home field excluded, and quotes a passage from each paper it
+                returns. Anything without a passage and a mapping is dropped. If the run fails you
+                get an error, not the hero results.
               </>
             ) : (
               <>

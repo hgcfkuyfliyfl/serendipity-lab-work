@@ -33,7 +33,9 @@
   --color-ring: var(--ring);
   --color-forest: var(--forest);
   --color-terracotta: var(--terracotta);
+  --color-terracotta-ink: var(--terracotta-ink);
   --color-ochre: var(--ochre);
+  --color-ochre-ink: var(--ochre-ink);
   --color-sage: var(--sage);
   --color-ink: var(--ink);
   --color-ink-foreground: var(--ink-foreground);
@@ -54,7 +56,7 @@
   --secondary: oklch(0.92 0.012 95);        /* stone #EAE7DE */
   --secondary-foreground: oklch(0.28 0.02 175);
   --muted: oklch(0.92 0.012 95);
-  --muted-foreground: oklch(0.52 0.015 165); /* slate #65716C */
+  --muted-foreground: oklch(0.5 0.015 165);  /* slate, darkened to clear 4.5:1 on the sage panels */
   --accent: oklch(0.93 0.018 145);          /* sage #E5EDE4 */
   --accent-foreground: oklch(0.39 0.06 182);
   --destructive: oklch(0.6 0.12 40);        /* terracotta */
@@ -63,8 +65,12 @@
   --input: oklch(0.88 0.012 100);
   --ring: oklch(0.39 0.06 182);
   --forest: oklch(0.53 0.06 145);           /* #547A59 */
-  --terracotta: oklch(0.62 0.12 42);        /* #C36D4C */
-  --ochre: oklch(0.7 0.11 80);              /* #C49A48 */
+  --terracotta: oklch(0.62 0.12 42);        /* #C36D4C — borders, rules, icons */
+  --ochre: oklch(0.7 0.11 80);              /* #C49A48 — borders, rules, icons */
+  /* Text-safe variants of the two accents. The lighter ones above sit at ~3.4:1 on
+     ivory, under the 4.5:1 WCAG AA floor for body text, so text uses these. */
+  --terracotta-ink: oklch(0.52 0.12 42);    /* 5.7:1 on card */
+  --ochre-ink: oklch(0.52 0.11 80);         /* 5.5:1 on card */
   --sage: oklch(0.93 0.018 145);
   --ink: oklch(0.3 0.04 185);               /* dark teal surface */
   --ink-foreground: oklch(0.95 0.012 95);
@@ -97,7 +103,7 @@
   font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-terracotta);
+  color: var(--color-terracotta-ink);
   border: 1px dashed color-mix(in oklab, var(--color-terracotta) 55%, transparent);
   padding: 0.05rem 0.35rem;
   border-radius: 3px;

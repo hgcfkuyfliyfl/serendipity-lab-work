@@ -65,7 +65,7 @@ export function Chip({
       aria-pressed={active}
       {...rest}
       className={cn(
-        "rounded-md border px-3 py-1.5 text-xs transition-colors",
+        "inline-flex min-h-11 items-center rounded-md border px-3 py-1.5 text-xs transition-colors sm:min-h-0",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-card hover:border-primary/50",
@@ -86,8 +86,11 @@ export function FieldTag({ field }: { field: string }) {
 
 const reviewMap: Record<ReviewStatus, { label: string; cls: string }> = {
   supported: { label: "Model reviewer: supported", cls: "text-forest border-forest/40" },
-  plausible: { label: "Model reviewer: plausible", cls: "text-ochre border-ochre/50" },
-  contested: { label: "Model reviewer: contested", cls: "text-terracotta border-terracotta/50" },
+  plausible: { label: "Model reviewer: plausible", cls: "text-ochre-ink border-ochre/50" },
+  contested: {
+    label: "Model reviewer: contested",
+    cls: "text-terracotta-ink border-terracotta/50",
+  },
 };
 export function ReviewBadge({ status }: { status: ReviewStatus }) {
   const r = reviewMap[status];
@@ -97,8 +100,8 @@ export function ReviewBadge({ status }: { status: ReviewStatus }) {
 }
 
 const heresyMap: Record<Heresy, { label: string; cls: string }> = {
-  high: { label: "Heresy: high", cls: "text-terracotta border-terracotta/50" },
-  medium: { label: "Heresy: medium", cls: "text-ochre border-ochre/50" },
+  high: { label: "Heresy: high", cls: "text-terracotta-ink border-terracotta/50" },
+  medium: { label: "Heresy: medium", cls: "text-ochre-ink border-ochre/50" },
   low: { label: "Heresy: low", cls: "text-muted-foreground border-border" },
 };
 /** Topical distance from the home field. Derived on the server, never computed here. */
@@ -119,16 +122,22 @@ export function ProvenanceChip({ c }: { c: Candidate }) {
   const grounded = !!c.source.passage && c.mapping.length > 0;
   const label = c.fixture
     ? "Cached fixture · real passage and DOI · placeholder scores"
-    : c.live
-      ? grounded
-        ? "Live model output"
-        : "Live model output · no source retrieved · not grounded"
-      : "Source not retrieved";
+    : c.corpus
+      ? !grounded
+        ? "Corpus retrieval · no passage returned · not grounded"
+        : c.corpusStub
+          ? "Backend run · placeholder corpus · passage is not a verbatim quote"
+          : "Corpus retrieval · passage quoted from the retrieved paper"
+      : c.live
+        ? grounded
+          ? "Live model output"
+          : "Live model output · no source retrieved · not grounded"
+        : "Source not retrieved";
   return (
     <span
       className={cn(
         "rounded-sm border px-1.5 py-0.5 text-[11px]",
-        grounded ? "border-forest/40 text-forest" : "border-terracotta/50 text-terracotta",
+        grounded ? "border-forest/40 text-forest" : "border-terracotta/50 text-terracotta-ink",
       )}
     >
       {label}

@@ -102,27 +102,44 @@ function Results() {
       <PageHeader
         eyebrow="Results"
         title={
-          groundedCount === all.length
-            ? `${all.length} cross-domain candidates`
-            : `${groundedCount} grounded, ${all.length - groundedCount} ungrounded`
+          all.length === 0
+            ? "No results"
+            : groundedCount === all.length
+              ? `${all.length} cross-domain candidates`
+              : `${groundedCount} grounded, ${all.length - groundedCount} ungrounded`
         }
         aside={
           <MockTag>
-            {all[0]?.live
-              ? "Live model output, not verified"
-              : all[0]?.fixture
-                ? "Placeholder scores"
-                : "Scores are demo values"}
+            {all.length === 0
+              ? "Nothing to show"
+              : all[0]?.live
+                ? "Live model output, not verified"
+                : all[0]?.fixture
+                  ? "Placeholder scores"
+                  : all[0]?.corpus
+                    ? "Structural scores, not validated"
+                    : "Scores are demo values"}
           </MockTag>
         }
       >
         Home field excluded: {run.input.homeFields.join(", ")}.{" "}
         {run.rejected.length > 0 &&
           `${run.rejected.length} dropped by the reviewer or exclusion rules.`}
-        {run.liveNote && <span className="mt-2 block text-terracotta">{run.liveNote}</span>}
+        {run.liveNote && <span className="mt-2 block text-terracotta-ink">{run.liveNote}</span>}
       </PageHeader>
 
-      <div ref={statRef} className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+      {run.seeded && (
+        <p role="status" className="mb-6 rounded-md border border-ochre/50 bg-card p-4 text-sm">
+          <strong className="font-medium">This is the cached hero demo, not your run.</strong> No
+          run was in progress, so the app opened the frozen example about robot grasping. Go to
+          Discover to run your own problem.
+        </p>
+      )}
+
+      <div
+        ref={statRef}
+        className={`mb-6 grid-cols-2 gap-3 md:grid-cols-4 ${all.length === 0 ? "hidden" : "grid"}`}
+      >
         {[
           ["Candidates", all.length],
           ["Fields reached", fields.length],
@@ -140,8 +157,9 @@ function Results() {
         ))}
       </div>
 
+      {/* Nothing to filter when the run returned nothing, so the controls stay out of the way. */}
       <form
-        className="mb-6 flex flex-wrap items-end gap-4 text-sm"
+        className={`mb-6 flex-wrap items-end gap-4 text-sm ${all.length === 0 ? "hidden" : "flex"}`}
         aria-label="Filter and sort"
         onSubmit={(e) => e.preventDefault()}
       >
@@ -286,7 +304,7 @@ function Results() {
                                 href={c.paper.doi}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="underline underline-offset-2"
+                                className="inline-flex min-h-11 items-center underline underline-offset-2 sm:min-h-0"
                               >
                                 DOI
                               </a>
@@ -306,12 +324,14 @@ function Results() {
                           {c.source.passage ? (
                             <FileCheck2 className="h-3.5 w-3.5 text-forest" aria-hidden />
                           ) : (
-                            <FileWarning className="h-3.5 w-3.5 text-terracotta" aria-hidden />
+                            <FileWarning className="h-3.5 w-3.5 text-terracotta-ink" aria-hidden />
                           )}
                           {c.source.passage
                             ? c.fixture
                               ? "Verbatim source passage"
-                              : "Source passage (illustrative)"
+                              : c.corpus && !c.corpusStub
+                                ? "Passage from the retrieved paper"
+                                : "Source passage (illustrative)"
                             : "Evidence incomplete"}
                         </span>
                         {c.tags.map((t) => (
@@ -323,7 +343,13 @@ function Results() {
                       <ScoreBar
                         value={c.mockScore}
                         label={
-                          c.live ? "Model estimate" : c.fixture ? "Placeholder score" : "Demo score"
+                          c.live
+                            ? "Model estimate"
+                            : c.fixture
+                              ? "Placeholder score"
+                              : c.corpus
+                                ? "Structural score"
+                                : "Demo score"
                         }
                       />
                       {c.reviewerConfidence !== undefined && (

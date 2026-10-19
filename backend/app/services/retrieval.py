@@ -5,7 +5,12 @@ from typing import Any
 
 
 class RetrievalService:
-    """Minimal retrieval service that matches the project contract without a vector database."""
+    """Placeholder retrieval. A few hand-written entries with paraphrased abstracts.
+
+    It is NOT the real corpus: there is no index, no embeddings and no verbatim
+    abstracts. Every match it returns is tagged ``corpus="stub"`` so the trace and
+    the UI can say so instead of presenting the text as a quotation.
+    """
 
     def __init__(self, corpus: list[dict[str, Any]] | None = None) -> None:
         self.corpus = corpus or [
@@ -75,6 +80,11 @@ class RetrievalService:
                     "source_field": source_field,
                     "structural_score": round(float(combined), 4),
                     "matched_on": matched_on,
+                    "abstract": paper.get("abstract", ""),
+                    "year": paper.get("year"),
+                    "venue": paper.get("venue"),
+                    "doi": paper.get("doi"),
+                    "corpus": "stub" if paper.get("stub", True) else "index",
                     "hypothesis": paper.get("abstract", ""),
                     "source_passage": paper.get("abstract", ""),
                     "mapping": [

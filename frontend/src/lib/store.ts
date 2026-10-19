@@ -3,6 +3,17 @@ import { HERO_TEXT } from "./mock-data";
 import { FIXED } from "./serendipity";
 import { abstractProblem, findCollisions } from "./gemini.functions";
 import {
+  explainApiError,
+  fieldSlug,
+  isApiConfigured,
+  startRun as apiStartRun,
+  streamRun as apiStreamRun,
+  toCandidate as apiToCandidate,
+  toTraceEvent as apiToTraceEvent,
+  type ApiResultEvent,
+  type ApiTraceEvent,
+} from "./api";
+import {
   advanceRun,
   getDemoRun,
   registerLive,
@@ -12,7 +23,7 @@ import {
   startFixtureRun,
   STEP_MS,
 } from "./service";
-import type { CollisionInput, Run } from "./types";
+import type { Candidate, CollisionInput, Run, TraceEvent } from "./types";
 
 interface State {
   draft: CollisionInput;
@@ -52,9 +63,12 @@ export function useStore<T>(sel: (s: State) => T): T {
 }
 
 let timer: ReturnType<typeof setInterval> | null = null;
+let abort: AbortController | null = null;
 const stop = () => {
   if (timer) clearInterval(timer);
   timer = null;
+  abort?.abort();
+  abort = null;
 };
 
 /** Mark one step failed and skip everything after it. */
@@ -119,12 +133,123 @@ function replayHero(input: CollisionInput, fail: boolean) {
   timer = setTimeout(tick, started.delays?.[0] ?? 1000) as unknown as typeof timer;
 }
 
+/**
+ * Live run against the team's FastAPI backend. Trace rows and results are only what the
+ * SSE stream sends; nothing is filled in locally. A run with no surviving results ends
+ * completed and empty, never with substituted hero data.
+ */
+function runAgainstBackend(input: CollisionInput) {
+  const started: Run = {
+    id: `run_${Date.now().toString(36)}`,
+    input,
+    status: "running",
+    startedAt: Date.now(),
+    trace: [
+      {
+        id: "api-start",
+        step: "abstracting",
+        message: "Sent your problem to the backend. Waiting for the agent loop.",
+        state: "running",
+      },
+    ],
+    resultIds: [],
+    rejected: [],
+    backend: true,
+    liveStage: "pending",
+  };
+  set({ run: started });
+
+  const controller = new AbortController();
+  abort = controller;
+  const timeout = setTimeout(() => controller.abort(), LIVE_TIMEOUT_MS);
+
+  const trace: TraceEvent[] = [];
+  const candidates: Candidate[] = [];
+  let corpusStub = false;
+  const isCurrent = () => state.run?.id === started.id;
+
+  const onTrace = (event: ApiTraceEvent) => {
+    if (!isCurrent()) return;
+    if (event.meta?.corpus === "stub") corpusStub = true;
+    trace.push(apiToTraceEvent(event, trace.length));
+    const last = trace[trace.length - 1];
+    if (last && event.step !== "done") last.state = "running";
+    if (trace.length > 1) {
+      const previous = trace[trace.length - 2];
+      if (previous) previous.state = "completed";
+    }
+    set({ run: { ...state.run!, trace: trace.map((e) => ({ ...e })) } });
+  };
+
+  const onResult = (event: ApiResultEvent) => {
+    if (!isCurrent()) return;
+    const candidate = apiToCandidate(event, started.id, state.run?.abstraction, corpusStub);
+    candidates.push(candidate);
+    registerLive([candidate]);
+    set({
+      run: {
+        ...state.run!,
+        candidates: [...candidates],
+        resultIds: candidates.map((c) => c.id),
+      },
+    });
+  };
+
+  const startThenStream = async () => {
+    const runId = await apiStartRun(
+      {
+        text: input.text,
+        home_fields: input.homeFields.map(fieldSlug),
+        chaos: 0,
+      },
+      controller.signal,
+    );
+    await apiStreamRun(runId, { onTrace, onResult }, controller.signal);
+  };
+
+  startThenStream()
+    .then(() => {
+      clearTimeout(timeout);
+      if (!isCurrent()) return;
+      const finished = trace.map((e) => ({ ...e, state: "completed" as const }));
+      set({
+        run: {
+          ...state.run!,
+          trace: finished,
+          status: "completed",
+          liveStage: "done",
+          ...(candidates.length === 0
+            ? {
+                liveNote:
+                  "The backend finished with no grounded results. Nothing is shown, because no candidate carried both a source passage and a mapping.",
+              }
+            : {}),
+        },
+      });
+    })
+    .catch((error: unknown) => {
+      clearTimeout(timeout);
+      if (!isCurrent()) return;
+      const why = explainApiError(error);
+      const at = Math.max(0, trace.length - 1);
+      const base = { ...state.run!, trace: trace.length ? trace : state.run!.trace };
+      set({
+        run: {
+          ...failRun(base, at, `Backend run failed. ${why}`),
+          liveStage: "failed",
+          liveNote: `Backend run failed. ${why} No results are shown, because none exist for your text. Retry, or play the cached hero demo (a different problem).`,
+        },
+      });
+    });
+}
+
 export const actions = {
   setDraft: (d: Partial<CollisionInput>) => set({ draft: { ...state.draft, ...d } }),
   run: (input: CollisionInput) => {
     stop();
     const fail = state.simulateFailure;
     if (isHeroInput(input)) return replayHero(input, fail);
+    if (isApiConfigured() && !fail) return runAgainstBackend(input);
     const started = { ...advanceRun(startCollisionRun(input)), liveStage: "pending" as const };
     set({ run: started });
     const excluded = excludedFields(input.homeFields);
@@ -236,8 +361,16 @@ export const actions = {
     stop();
     set({ run: getDemoRun() });
   },
+  /**
+   * Opened a page with no run in memory (a reload, or a direct link). We show the cached
+   * hero demo so the page is not blank, and mark it `seeded` so every page can say that
+   * this is the demo, not the visitor's own run.
+   */
   ensureRun: () => {
-    if (!state.run) actions.loadCached();
+    if (!state.run) {
+      stop();
+      set({ run: { ...getDemoRun(), seeded: true } });
+    }
   },
   saveIdea: (id: string) => !state.saved.includes(id) && set({ saved: [...state.saved, id] }),
   removeSavedIdea: (id: string) => set({ saved: state.saved.filter((s) => s !== id) }),

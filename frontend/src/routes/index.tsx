@@ -283,7 +283,7 @@ function Landing() {
               ["Discover", "Get hypotheses grounded in source passages, with clear caveats."],
             ].map(([t, d], i) => (
               <li key={t} className="bg-card p-6">
-                <span className="font-mono text-xs text-terracotta">0{i + 1}</span>
+                <span className="font-mono text-xs text-terracotta-ink">0{i + 1}</span>
                 <h3 className="mt-3 text-xl">{t}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{d}</p>
               </li>
@@ -330,15 +330,15 @@ function Landing() {
               <dd className="mt-2">
                 Jamming transitions in granular matter (Soft Matter Physics).
               </dd>
-              <Link
-                to="/app/candidate/$id"
-                params={{ id: "hero-r1" }}
-                className="mt-2 inline-flex items-center gap-1 text-primary hover:underline"
-              >
-                See the evidence <ArrowRight className="h-3 w-3" />
-              </Link>
             </div>
           </dl>
+          <Link
+            to="/app/candidate/$id"
+            params={{ id: "hero-r1" }}
+            className="mt-4 inline-flex min-h-11 items-center gap-1 text-sm text-primary hover:underline"
+          >
+            See the evidence <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
       </section>
 
@@ -379,7 +379,7 @@ function Landing() {
             {["Stays within your field", "Matches keywords", "Good at finding known work"].map(
               (t) => (
                 <li key={t} className="flex gap-2">
-                  <X className="h-4 w-4 text-terracotta" />
+                  <X className="h-4 w-4 text-terracotta-ink" />
                   {t}
                 </li>
               ),
@@ -415,9 +415,17 @@ function Landing() {
             <Logo inverted />
             <p className="mt-1 text-sm text-ink-muted">Better questions. Broader perspectives.</p>
           </div>
-          <p className="font-mono text-xs text-ink-muted">
-            © 2026 Serendipity Lab · Built for curious minds
-          </p>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/privacy"
+              className="inline-flex min-h-11 items-center font-mono text-xs text-ink-muted underline underline-offset-4 hover:text-ink-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              Privacy
+            </Link>
+            <p className="font-mono text-xs text-ink-muted">
+              © 2026 Serendipity Lab · Built for curious minds
+            </p>
+          </div>
         </div>
       </footer>
     </div>

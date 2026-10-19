@@ -30,17 +30,32 @@ function TracePage() {
         eyebrow="Agent trace"
         title="What the agent did"
         aside={
-          <MockTag>{run.fixture ? "Cached fixture playback" : "Live model, no corpus"}</MockTag>
+          <MockTag>
+            {run.fixture
+              ? "Cached fixture playback"
+              : run.backend
+                ? "Live backend run"
+                : "Live model, no corpus"}
+          </MockTag>
         }
       >
         {run.fixture
           ? "The agent decomposes your problem, retrieves, lets a skeptic reject candidates, then rewrites its own queries and retrieves again. Each line is one event from the run."
-          : "Live run: Gemini restates your problem, proposes analogies from its own knowledge, and a second call challenges them. No paper corpus is searched and no refinement loop runs."}
+          : run.backend
+            ? "Live run on the team's backend. Every line below is one event the server sent while the agent loop was running. Nothing is added here."
+            : "Live run: Gemini restates your problem, proposes analogies from its own knowledge, and a second call challenges them. No paper corpus is searched and no refinement loop runs."}
       </PageHeader>
+
+      {run.seeded && (
+        <p role="status" className="mb-6 rounded-md border border-ochre/50 bg-card p-4 text-sm">
+          <strong className="font-medium">This is the cached hero demo, not your run.</strong> No
+          run was in progress, so the app opened the frozen example about robot grasping.
+        </p>
+      )}
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-live="polite">
-          {run.fixture ? <StageRail run={run} /> : <LiveFeed run={run} />}
+          {run.fixture ? <StageRail run={run} /> : run.backend ? null : <LiveFeed run={run} />}
           <TraceList run={run} />
           {failed && (
             <div
@@ -54,7 +69,7 @@ function TracePage() {
             </div>
           )}
           {run.liveNote && (
-            <p className="mt-4 text-sm text-terracotta" role="status">
+            <p className="mt-4 text-sm text-terracotta-ink" role="status">
               {run.liveNote}
             </p>
           )}
@@ -65,7 +80,14 @@ function TracePage() {
               reviewer notes are placeholders and will change when real output lands.
             </p>
           )}
-          {done && run.candidates && !run.fixture && (
+          {done && run.candidates && run.backend && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Each result quotes a passage from the paper the backend retrieved. Anything the server
+              could not ground in a passage and a mapping was dropped before it reached this page.
+              The scores are the system&rsquo;s own and have not been validated against a baseline.
+            </p>
+          )}
+          {done && run.candidates && !run.fixture && !run.backend && (
             <p className="mt-4 text-sm text-muted-foreground">
               These candidates were generated live by Gemini from its general knowledge. No paper
               corpus is connected, so no source passages were retrieved and nothing here is
@@ -110,7 +132,7 @@ function TracePage() {
                 ))}
                 {run.rejected.map((r) => (
                   <li key={r.id}>
-                    <span className="text-terracotta">Dropped:</span>{" "}
+                    <span className="text-terracotta-ink">Dropped:</span>{" "}
                     {r.title ?? getCandidate(r.id)?.title}
                     <span className="block text-xs text-muted-foreground">{r.reason}</span>
                   </li>

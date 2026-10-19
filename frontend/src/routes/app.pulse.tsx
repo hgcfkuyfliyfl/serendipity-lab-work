@@ -109,7 +109,7 @@ function Pulse() {
                 aria-pressed={view === v}
                 onClick={() => setView(v)}
                 className={cn(
-                  "rounded px-3 py-1",
+                  "inline-flex min-h-11 items-center rounded px-3 py-1 sm:min-h-0",
                   view === v && "bg-primary text-primary-foreground",
                 )}
               >

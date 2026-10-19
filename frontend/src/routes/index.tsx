@@ -415,9 +415,17 @@ function Landing() {
             <Logo inverted />
             <p className="mt-1 text-sm text-ink-muted">Better questions. Broader perspectives.</p>
           </div>
-          <p className="font-mono text-xs text-ink-muted">
-            © 2026 Serendipity Lab · Built for curious minds
-          </p>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/privacy"
+              className="inline-flex min-h-11 items-center font-mono text-xs text-ink-muted underline underline-offset-4 hover:text-ink-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              Privacy
+            </Link>
+            <p className="font-mono text-xs text-ink-muted">
+              © 2026 Serendipity Lab · Built for curious minds
+            </p>
+          </div>
         </div>
       </footer>
     </div>

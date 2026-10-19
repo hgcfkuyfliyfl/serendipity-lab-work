@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { btn, MockTag, PageHeader } from "@/components/lab";
 import { Switch } from "@/components/ui/switch";
+import { isApiConfigured } from "@/lib/api";
 import { actions, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/app/settings")({ component: Settings });
@@ -58,8 +59,12 @@ function Settings() {
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           The hero text replays a frozen fixture from src/mock: real passages and DOIs, placeholder
-          scores and reviewer notes. Any other text goes to Gemini through the server, from its
-          general knowledge, with no paper corpus and no source passages.
+          scores and reviewer notes.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {isApiConfigured()
+            ? "Any other text goes to the team's backend, which runs the agent loop and quotes a passage from each retrieved paper."
+            : "No backend is connected in this build, so any other text goes to Gemini through the server, from its general knowledge, with no paper corpus and no source passages."}
         </p>
         <Row
           id="sf"
@@ -79,7 +84,17 @@ function Settings() {
             Reset demo
           </button>
         </div>
-        <h2 className="mt-4 text-xl">Account</h2>
+        <h2 className="mt-4 text-xl">Privacy</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          What happens to the text you type, and what is stored in this browser.
+        </p>
+        <Link
+          to="/privacy"
+          className="mt-3 inline-flex min-h-11 items-center text-sm underline underline-offset-4 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          Read the privacy page
+        </Link>
+        <h2 className="mt-8 text-xl">Account</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Sign-in and synced profiles are not part of this prototype.
         </p>

@@ -44,7 +44,12 @@ function SignIn() {
             the same shape.
           </p>
         </div>
-        <p className="font-mono text-[11px] text-ink-muted">PROTOTYPE · demo sign-in only</p>
+        <p className="font-mono text-[11px] text-ink-muted">
+          PROTOTYPE · demo sign-in only ·{" "}
+          <Link to="/privacy" className="underline underline-offset-4 hover:text-ink-foreground">
+            Privacy
+          </Link>
+        </p>
       </div>
       <main className="flex items-center justify-center px-6 py-12">
         <form onSubmit={submit} className="w-full max-w-sm" noValidate>

@@ -119,11 +119,15 @@ export function ProvenanceChip({ c }: { c: Candidate }) {
   const grounded = !!c.source.passage && c.mapping.length > 0;
   const label = c.fixture
     ? "Cached fixture · real passage and DOI · placeholder scores"
-    : c.live
+    : c.corpus
       ? grounded
-        ? "Live model output"
-        : "Live model output · no source retrieved · not grounded"
-      : "Source not retrieved";
+        ? "Corpus retrieval · passage quoted from the retrieved paper"
+        : "Corpus retrieval · no passage returned · not grounded"
+      : c.live
+        ? grounded
+          ? "Live model output"
+          : "Live model output · no source retrieved · not grounded"
+        : "Source not retrieved";
   return (
     <span
       className={cn(

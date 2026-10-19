@@ -301,19 +301,19 @@ class LLMGateway:
         if os.getenv("LLM_CACHE_ONLY", "").strip().lower() in {"1", "true", "yes", "on"}:
             raise LLMFailure("cache_only_miss", f"No cache entry for task '{task}' in cache-only mode")
 
-        if self._dry_run_enabled():
-            start = time.perf_counter()
-            payload = self._dry_run_payload(task)
-            self._validate_output(task, payload)
-            self._cache_set(cache_key, {"data": payload, "usage": {"dry_run": True}})
-            latency_ms = int((time.perf_counter() - start) * 1000)
-            return LLMResult(data=payload, cached=False, model=task_cfg["model"], attempts=1, latency_ms=latency_ms, usage={"dry_run": True})
-
         prompt = self._render_prompt(task, inputs)
         schema = self._load_schema(task)
 
         provider = self.provider
         if provider is None:
+            if self._dry_run_enabled():
+                start = time.perf_counter()
+                payload = self._dry_run_payload(task)
+                self._validate_output(task, payload)
+                self._cache_set(cache_key, {"data": payload, "usage": {"dry_run": True}})
+                latency_ms = int((time.perf_counter() - start) * 1000)
+                return LLMResult(data=payload, cached=False, model=task_cfg["model"], attempts=1, latency_ms=latency_ms, usage={"dry_run": True})
+
             api_key = os.getenv(self.llm_cfg.get("api_key_env", "GEMINI_API_KEY"), "")
             if not api_key:
                 start = time.perf_counter()

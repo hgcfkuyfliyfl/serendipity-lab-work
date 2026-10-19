@@ -29,7 +29,9 @@ chroma/
 !data/README.md
 
 # LLM cache & secrets
+# cache/ is the LLM SQLite cache, path set in config/models.yaml (llm.cache.path)
 .cache/
+cache/
 .env
 .env.*
 !.env.example

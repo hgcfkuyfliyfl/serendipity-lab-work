@@ -1,0 +1,112 @@
+# Serendipity Lab: models and retrieval config. LOCKED at Hour 2.
+# Retrieval defaults (bottom) stay tunable until the Hour 14 gate. Everything else changes only via `amendments`.
+version: 1
+
+llm:
+  provider: gemini
+  base_url: https://generativelanguage.googleapis.com/v1beta
+  api_key_env: GEMINI_API_KEY
+  base_model: gemini-3.8-flash
+  # THINKING MUST STAY OFF. Wire as generationConfig.thinkingConfig.thinkingBudget = 0.
+  # Gemini 3.x defaults thinking ON. With it on, the chain of thought blows the 20s hero
+  # budget and arrives as `thought` parts that must never be parsed as content.
+  # Verified: thinkingBudget 0 yields no thought parts and 2.6-5.9s on the hero input.
+  thinking:
+    budget: 0
+  # Rule: abstractor and decomposer MUST use the same model. Both produce text that is embedded into
+  # the same space as the corpus abstractions. A model mismatch is a silent quality bug.
+  tasks:
+    abstractor:
+      model: gemini-3.8-flash
+      temperature: 0            # determinism makes the cache and the validation table reproducible; drop if the API rejects it
+      max_tokens: 600
+      timeout_s: 45
+      prompt_file: prompts/abstractor.md
+      schema_file: config/schemas/abstraction.schema.json
+    decomposer:                 # also used in rewrite mode (given a reviewer critique, produce better queries)
+      model: gemini-3.8-flash
+      temperature: 0
+      max_tokens: 700
+      timeout_s: 45
+      prompt_file: prompts/decomposer.md
+      schema_file: config/schemas/decomposer.schema.json      # written by Hour 6
+    skeptic:                    # reviewer: keep/drop + reason + boundary conditions
+      model: gemini-3.8-flash  # first thing to downgrade to gemini-3.5-flash-lite if rate limits bite
+      temperature: 0.2
+      max_tokens: 500
+      timeout_s: 30
+      prompt_file: prompts/skeptic.md
+      schema_file: config/schemas/skeptic.schema.json         # written by Hour 6
+    translator:                 # what-if + source_passage + mapping[] + reviewer_note
+      model: gemini-3.8-flash
+      temperature: 0.3
+      max_tokens: 900
+      timeout_s: 60
+      prompt_file: prompts/translator.md
+      schema_file: config/schemas/translator.schema.json      # written by Hour 6
+  # prior_art: CUT (see docs/cut_list.md). No prompt, no schema, no API field.
+
+  concurrency: 2                # global semaphore across all tasks. Free-tier Gemini returned 429 then 503
+                            # after 1-3 rapid calls when this was 8. Raise only after measuring the
+                            # real quota, and never above what the corpus batch job tolerates.
+  retries:
+    transport: 4                # timeouts, 429, 5xx; honor Retry-After
+    validation: 2               # schema or JSON failures; error text is appended to the retry prompt
+    backoff_base_s: 1.5
+    backoff_max_s: 20
+    jitter: true
+  cache:
+    backend: sqlite             # WAL mode; atomic; safe to kill mid-run and resume
+    path: cache/llm_cache.sqlite
+    # Superset of the planned key (paper_id, prompt_version, model). The prompt hash means editing a prompt
+    # file WITHOUT bumping its version still cannot return a stale result.
+    key_fields: [task, cache_id, prompt_sha256, model, schema_sha256]
+    never_cache_failures: true
+    cache_only_env: LLM_CACHE_ONLY    # =1: a cache miss raises instead of calling the API. Use on stage.
+
+embedding:
+  library: sentence-transformers
+  model: BAAI/bge-base-en-v1.5  # local, free, no network dependency at demo time, 768-dim
+  dim: 768
+  normalize: true
+  metric: cosine
+  max_seq_length: 512
+  batch_size: 32
+  query_instruction: ""         # none. Matching is symmetric (abstraction to abstraction), so neither side gets a prefix.
+  one_model_rule: true          # one model for queries and corpus; never mix
+  assert_at_load: true          # store {model, dim, normalize} in Chroma collection metadata; refuse to load on mismatch
+
+vector_store:
+  engine: chromadb              # FAISS only above ~200k documents
+  path: data/chroma
+  collections:
+    abstractions_problem:   { embeds: "functional_problem + constraints" }
+    abstractions_mechanism: { embeds: "mechanism" }
+    raw_abstracts:          { embeds: "title + raw abstract" }   # baseline only
+  metadata_fields: [paper_id, title, year, field, source, doi]
+  home_field_filter: { field: { "$nin": "home_fields" } }        # applied identically to ours AND the baseline
+
+# --- Retrieval defaults: tunable until the Hour 14 gate ---
+retrieval:
+  # Each paper has TWO structural vectors. A query is compared with both. The user's problem should match
+  # either a paper's own problem (same abstract problem) or its mechanism (a mechanism that offers what the user needs).
+  structural_score: "max(cos(q, v_problem), cos(q, v_mechanism)), maximized over all queries in the run"
+  record_matched_on: true       # 'problem' or 'mechanism'; shown in the inspector and reported in the table
+  queries_per_run: [2, 4]       # decomposer output, plus the original abstraction
+  k_per_query: 30
+  candidates_to_review: 12
+  max_loops: 2
+  results_shown: 5
+  drop_rule: "no source_passage AND no mapping => dropped, never shown"
+  heresy:                       # derived, no extra model; replaces the separate Heresy Meter
+    topical_distance: "1 - cos(raw_query_embedding, raw_abstract_embedding)"
+    buckets: tertiles_of_candidate_pool   # low / medium / high; computed per run
+  chaos_param: accepted_and_ignored       # slider is cut; API field kept so the frontend contract does not break
+
+amendments:
+  - date: 2026-10-17
+    change: "llm provider anthropic -> deepseek; claude-sonnet-5-5 -> deepseek-v4-pro on all four tasks; added base_url and thinking.mode=disabled"
+    reason: "Team moved off Anthropic. The swap was anticipated by llm_gateway_spec rule 10 (change models.yaml + one adapter file). Done before any case was run, so the validation re-run rule in validation_cases.yaml is not triggered. thinking.mode added because DeepSeek defaults thinking ON, which silently ignores temperature and blows the 20s hero budget."
+  - date: 2026-10-17
+    change: "llm provider deepseek -> gemini; deepseek-v4-pro -> gemini-3.8-flash on all four tasks; thinking.budget: 0 replaces thinking.mode; concurrency 8 -> 2"
+    reason: "DeepSeek account was unfunded (prepaid, every call returned Insufficient Balance). Switched to the Gemini free tier. Model chosen from the account's live catalogue, not from memory: gemini-2.5-* is retired for new accounts (HTTP 404) and gemini-3.1-pro-preview rate-limited immediately. gemini-3.8-flash is GA, not preview, and measured clean on the hero input. Concurrency dropped because free tier returned 429 then 503 at concurrency 8. Supersedes A1."

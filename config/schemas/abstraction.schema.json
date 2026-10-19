@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "serendipity-lab/abstraction.schema.json",
+  "title": "Abstraction",
+  "description": "Domain-neutral structural description of a problem (user input) or of a paper (corpus). Same schema for both. LOCKED at Hour 2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["functional_problem", "constraints", "mechanism", "domain_tags"],
+  "properties": {
+    "functional_problem": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 400,
+      "description": "One sentence stating the abstract problem or phenomenon, with no domain nouns (no field-specific objects, materials, organisms, or institutions)."
+    },
+    "constraints": {
+      "type": "array",
+      "maxItems": 6,
+      "items": { "type": "string", "minLength": 3, "maxLength": 200 },
+      "description": "Domain-neutral conditions the solution must satisfy."
+    },
+    "mechanism": {
+      "type": ["string", "null"],
+      "maxLength": 400,
+      "description": "One sentence: the principle by which the work solves or explains the problem, in domain-neutral terms. Corpus papers: REQUIRED (the batch job retries on null). User input: null when the user has not proposed an approach."
+    },
+    "domain_tags": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "items": { "type": "string", "minLength": 2, "maxLength": 60 },
+      "description": "The source domain vocabulary that was stripped out. Used for display only, never for matching."
+    }
+  }
+}

@@ -91,7 +91,7 @@ function SignIn() {
             />
           </label>
           {err && (
-            <p role="alert" className="mt-3 text-sm text-terracotta">
+            <p role="alert" className="mt-3 text-sm text-terracotta-ink">
               {err}
             </p>
           )}

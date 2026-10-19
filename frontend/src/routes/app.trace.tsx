@@ -69,7 +69,7 @@ function TracePage() {
             </div>
           )}
           {run.liveNote && (
-            <p className="mt-4 text-sm text-terracotta" role="status">
+            <p className="mt-4 text-sm text-terracotta-ink" role="status">
               {run.liveNote}
             </p>
           )}
@@ -132,7 +132,7 @@ function TracePage() {
                 ))}
                 {run.rejected.map((r) => (
                   <li key={r.id}>
-                    <span className="text-terracotta">Dropped:</span>{" "}
+                    <span className="text-terracotta-ink">Dropped:</span>{" "}
                     {r.title ?? getCandidate(r.id)?.title}
                     <span className="block text-xs text-muted-foreground">{r.reason}</span>
                   </li>

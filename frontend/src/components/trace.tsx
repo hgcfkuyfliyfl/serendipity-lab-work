@@ -10,7 +10,7 @@ const STATE: Record<TraceState, { label: string; icon: typeof Circle; cls: strin
   running: { label: "Running", icon: Loader2, cls: "text-primary" },
   completed: { label: "Completed", icon: CheckCircle2, cls: "text-forest" },
   skipped: { label: "Skipped", icon: MinusCircle, cls: "text-muted-foreground" },
-  failed: { label: "Failed", icon: AlertTriangle, cls: "text-terracotta" },
+  failed: { label: "Failed", icon: AlertTriangle, cls: "text-terracotta-ink" },
 };
 
 export function TraceRow({ e, index }: { e: TraceEvent; index: number }) {
@@ -52,7 +52,7 @@ export function TraceRow({ e, index }: { e: TraceEvent; index: number }) {
               </span>
             )}
             {e.step === "llm_retry" && (
-              <span className="rounded-sm border border-ochre/50 px-1.5 py-0.5 text-ochre">
+              <span className="rounded-sm border border-ochre/50 px-1.5 py-0.5 text-ochre-ink">
                 retry {e.meta.attempt}
               </span>
             )}
@@ -179,8 +179,8 @@ export function LiveFeed({ run }: { run: Run }) {
             <span
               className={cn(
                 "text-ink-muted",
-                l.kind === "objection" && "text-ochre",
-                l.kind === "dropped" && "text-terracotta",
+                l.kind === "objection" && "text-ochre-ink",
+                l.kind === "dropped" && "text-terracotta-ink",
               )}
             >
               {KIND[l.kind]}
@@ -230,7 +230,7 @@ export function StageRail({ run }: { run: Run }) {
                 "rounded-full border px-3 py-1 text-xs",
                 state === "done" && "border-forest/40 text-forest",
                 state === "running" && "border-primary bg-primary/10 text-primary",
-                state === "failed" && "border-terracotta/50 text-terracotta",
+                state === "failed" && "border-terracotta/50 text-terracotta-ink",
                 (state === "waiting" || state === "none") && "border-border text-muted-foreground",
               )}
             >

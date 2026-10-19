@@ -86,8 +86,11 @@ export function FieldTag({ field }: { field: string }) {
 
 const reviewMap: Record<ReviewStatus, { label: string; cls: string }> = {
   supported: { label: "Model reviewer: supported", cls: "text-forest border-forest/40" },
-  plausible: { label: "Model reviewer: plausible", cls: "text-ochre border-ochre/50" },
-  contested: { label: "Model reviewer: contested", cls: "text-terracotta border-terracotta/50" },
+  plausible: { label: "Model reviewer: plausible", cls: "text-ochre-ink border-ochre/50" },
+  contested: {
+    label: "Model reviewer: contested",
+    cls: "text-terracotta-ink border-terracotta/50",
+  },
 };
 export function ReviewBadge({ status }: { status: ReviewStatus }) {
   const r = reviewMap[status];
@@ -97,8 +100,8 @@ export function ReviewBadge({ status }: { status: ReviewStatus }) {
 }
 
 const heresyMap: Record<Heresy, { label: string; cls: string }> = {
-  high: { label: "Heresy: high", cls: "text-terracotta border-terracotta/50" },
-  medium: { label: "Heresy: medium", cls: "text-ochre border-ochre/50" },
+  high: { label: "Heresy: high", cls: "text-terracotta-ink border-terracotta/50" },
+  medium: { label: "Heresy: medium", cls: "text-ochre-ink border-ochre/50" },
   low: { label: "Heresy: low", cls: "text-muted-foreground border-border" },
 };
 /** Topical distance from the home field. Derived on the server, never computed here. */
@@ -134,7 +137,7 @@ export function ProvenanceChip({ c }: { c: Candidate }) {
     <span
       className={cn(
         "rounded-sm border px-1.5 py-0.5 text-[11px]",
-        grounded ? "border-forest/40 text-forest" : "border-terracotta/50 text-terracotta",
+        grounded ? "border-forest/40 text-forest" : "border-terracotta/50 text-terracotta-ink",
       )}
     >
       {label}

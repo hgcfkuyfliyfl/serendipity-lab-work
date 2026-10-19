@@ -121,7 +121,7 @@ function Results() {
         Home field excluded: {run.input.homeFields.join(", ")}.{" "}
         {run.rejected.length > 0 &&
           `${run.rejected.length} dropped by the reviewer or exclusion rules.`}
-        {run.liveNote && <span className="mt-2 block text-terracotta">{run.liveNote}</span>}
+        {run.liveNote && <span className="mt-2 block text-terracotta-ink">{run.liveNote}</span>}
       </PageHeader>
 
       {run.seeded && (
@@ -316,7 +316,7 @@ function Results() {
                           {c.source.passage ? (
                             <FileCheck2 className="h-3.5 w-3.5 text-forest" aria-hidden />
                           ) : (
-                            <FileWarning className="h-3.5 w-3.5 text-terracotta" aria-hidden />
+                            <FileWarning className="h-3.5 w-3.5 text-terracotta-ink" aria-hidden />
                           )}
                           {c.source.passage
                             ? c.fixture

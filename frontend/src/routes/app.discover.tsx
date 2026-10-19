@@ -135,7 +135,7 @@ function Discover() {
               <div id="problem-help" className="mt-2 flex justify-between gap-4 text-xs">
                 <span
                   className={
-                    error ? "flex items-center gap-1 text-terracotta" : "text-muted-foreground"
+                    error ? "flex items-center gap-1 text-terracotta-ink" : "text-muted-foreground"
                   }
                   role={error ? "alert" : undefined}
                 >

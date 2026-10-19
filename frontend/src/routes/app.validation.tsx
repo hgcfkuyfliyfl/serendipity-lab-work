@@ -41,7 +41,13 @@ function Validation() {
         the cross-domain structural search and measure it against a baseline.
       </p>
 
-      <div className="overflow-x-auto rounded-md border border-border">
+      {/* A scrollable region needs to be reachable by keyboard, so it takes focus itself. */}
+      <div
+        className="overflow-x-auto rounded-md border border-border focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        tabIndex={0}
+        role="region"
+        aria-label="Validation cases table, scrolls sideways"
+      >
         <table className="w-full min-w-[64rem] text-sm">
           <caption className="sr-only">
             Validation cases. Baseline and structural results, top 5 and top 10 shown separately.

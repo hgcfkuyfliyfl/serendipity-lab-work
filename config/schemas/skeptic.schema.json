@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Skeptic",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["accepted", "reason", "boundary_conditions"],
+  "properties": {
+    "accepted": { "type": "boolean" },
+    "reason": { "type": "string", "minLength": 10 },
+    "boundary_conditions": { "type": "array", "items": { "type": "string" } }
+  }
+}

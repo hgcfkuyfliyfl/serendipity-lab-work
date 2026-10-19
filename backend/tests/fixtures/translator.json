@@ -1,0 +1,9 @@
+{
+  "hypothesis": "The source concept maps to a compliant interface that spreads loads and stabilizes contact under irregular geometry.",
+  "source_passage": "A flexible boundary redistributes stress and maintains stable contact on uneven surfaces without dense sensing.",
+  "mapping": [
+    {"source_concept": "compliance", "home_concept": "flexible interface"},
+    {"source_concept": "force redistribution", "home_concept": "load smoothing"}
+  ],
+  "reviewer_note": "The mapping is structurally consistent and preserves the original mechanism while translating into home-domain language."
+}

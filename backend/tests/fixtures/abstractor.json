@@ -1,0 +1,6 @@
+{
+  "functional_problem": "A mechanism that adapts to irregular shapes with minimal sensing.",
+  "constraints": ["low complexity", "reversible attachment", "safe handling"],
+  "mechanism": "A compliant interface redistributes forces and stabilizes contact without dense sensing.",
+  "domain_tags": ["robotics", "mechanical design", "adaptive systems"]
+}

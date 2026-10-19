@@ -71,8 +71,11 @@ def test_run_ids_are_not_guessable() -> None:
     first = create_run_record("a", [], 0.0)["run_id"]
     second = create_run_record("a", [], 0.0)["run_id"]
     assert first != second
-    # A bare counter or timestamp would be short and predictable.
-    assert len(first.rsplit("_", 1)[-1]) >= 8
+    # A bare counter or timestamp would be short and predictable. The suffix is
+    # hex, so it never contains the "_" separator and this split is exact.
+    suffix = first.rsplit("_", 1)[-1]
+    assert len(suffix) >= 16
+    assert all(c in "0123456789abcdef" for c in suffix)
     RUN_STORE.clear()
 
 

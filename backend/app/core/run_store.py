@@ -21,8 +21,9 @@ def _evict_oldest() -> None:
 def create_run_record(text: str, home_fields: list[str], chaos: float) -> dict[str, Any]:
     _evict_oldest()
     # A random suffix, so a run id cannot be guessed from the clock and someone
-    # else's run read back off the stream endpoint.
-    run_id = f"run_{int(time.time() * 1000)}_{secrets.token_urlsafe(9)}"
+    # else's run read back off the stream endpoint. token_hex, not token_urlsafe:
+    # urlsafe output can contain "_", which collides with the separator here.
+    run_id = f"run_{int(time.time() * 1000)}_{secrets.token_hex(8)}"
     timestamp = int(time.time())
     record = {
         "run_id": run_id,

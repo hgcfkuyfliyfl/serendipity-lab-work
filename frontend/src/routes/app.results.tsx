@@ -124,6 +124,14 @@ function Results() {
         {run.liveNote && <span className="mt-2 block text-terracotta">{run.liveNote}</span>}
       </PageHeader>
 
+      {run.seeded && (
+        <p role="status" className="mb-6 rounded-md border border-ochre/50 bg-card p-4 text-sm">
+          <strong className="font-medium">This is the cached hero demo, not your run.</strong> No
+          run was in progress, so the app opened the frozen example about robot grasping. Go to
+          Discover to run your own problem.
+        </p>
+      )}
+
       <div ref={statRef} className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           ["Candidates", all.length],
@@ -288,7 +296,7 @@ function Results() {
                                 href={c.paper.doi}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="underline underline-offset-2"
+                                className="inline-flex min-h-11 items-center underline underline-offset-2 sm:min-h-0"
                               >
                                 DOI
                               </a>

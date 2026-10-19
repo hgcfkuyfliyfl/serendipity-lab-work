@@ -46,6 +46,13 @@ function TracePage() {
             : "Live run: Gemini restates your problem, proposes analogies from its own knowledge, and a second call challenges them. No paper corpus is searched and no refinement loop runs."}
       </PageHeader>
 
+      {run.seeded && (
+        <p role="status" className="mb-6 rounded-md border border-ochre/50 bg-card p-4 text-sm">
+          <strong className="font-medium">This is the cached hero demo, not your run.</strong> No
+          run was in progress, so the app opened the frozen example about robot grasping.
+        </p>
+      )}
+
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-live="polite">
           {run.fixture ? <StageRail run={run} /> : run.backend ? null : <LiveFeed run={run} />}
@@ -75,10 +82,9 @@ function TracePage() {
           )}
           {done && run.candidates && run.backend && (
             <p className="mt-4 text-sm text-muted-foreground">
-              Each result quotes a passage from the paper the backend retrieved. Anything the
-              server could not ground in a passage and a mapping was dropped before it reached this
-              page. The scores are the system&rsquo;s own and have not been validated against a
-              baseline.
+              Each result quotes a passage from the paper the backend retrieved. Anything the server
+              could not ground in a passage and a mapping was dropped before it reached this page.
+              The scores are the system&rsquo;s own and have not been validated against a baseline.
             </p>
           )}
           {done && run.candidates && !run.fixture && !run.backend && (

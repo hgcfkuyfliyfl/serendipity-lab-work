@@ -202,7 +202,8 @@ const STAGES: { label: string; steps: string[] }[] = [
   { label: "Refinement (max 2)", steps: ["rewriting"] },
   { label: "Ranking", steps: ["ranking"] },
   { label: "Translation", steps: ["translating"] },
-  { label: "Prior-art check", steps: ["prior_art"] },
+  // The prior-art check was cut at Hour 2 (docs/cut_list.md). It is not a stage of this
+  // system, so it is not listed here, not even as a missing one.
 ];
 
 /** The expected stages, each marked from the events that actually exist in this run. */

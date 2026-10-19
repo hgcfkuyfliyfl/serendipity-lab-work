@@ -361,8 +361,16 @@ export const actions = {
     stop();
     set({ run: getDemoRun() });
   },
+  /**
+   * Opened a page with no run in memory (a reload, or a direct link). We show the cached
+   * hero demo so the page is not blank, and mark it `seeded` so every page can say that
+   * this is the demo, not the visitor's own run.
+   */
   ensureRun: () => {
-    if (!state.run) actions.loadCached();
+    if (!state.run) {
+      stop();
+      set({ run: { ...getDemoRun(), seeded: true } });
+    }
   },
   saveIdea: (id: string) => !state.saved.includes(id) && set({ saved: [...state.saved, id] }),
   removeSavedIdea: (id: string) => set({ saved: state.saved.filter((s) => s !== id) }),

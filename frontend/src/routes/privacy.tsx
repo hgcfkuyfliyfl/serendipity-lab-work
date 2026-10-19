@@ -13,8 +13,8 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
       <>
         <p>
           Serendipity Lab is a student prototype built for a hackathon. It is not a finished
-          product, and this page is a plain description of how it handles your text. It is not
-          legal advice.
+          product, and this page is a plain description of how it handles your text. It is not legal
+          advice.
         </p>
       </>
     ),
@@ -24,8 +24,8 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     body: (
       <>
         <p>
-          The only thing you give the app is the problem text you type, and the home field you
-          pick. There is no file upload, no tracking of what you click, and no advertising.
+          The only thing you give the app is the problem text you type, and the home field you pick.
+          There is no file upload, no tracking of what you click, and no advertising.
         </p>
       </>
     ),

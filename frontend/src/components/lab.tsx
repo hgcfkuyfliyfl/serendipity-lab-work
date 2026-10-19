@@ -65,7 +65,7 @@ export function Chip({
       aria-pressed={active}
       {...rest}
       className={cn(
-        "rounded-md border px-3 py-1.5 text-xs transition-colors",
+        "inline-flex min-h-11 items-center rounded-md border px-3 py-1.5 text-xs transition-colors sm:min-h-0",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-card hover:border-primary/50",

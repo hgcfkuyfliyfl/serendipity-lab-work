@@ -69,7 +69,11 @@ function Discover() {
         title="Find Cross-Domain Collisions"
         aside={
           <MockTag>
-            {isHero ? "Cached fixture" : isApiConfigured() ? "Live backend" : "Live model, unverified"}
+            {isHero
+              ? "Cached fixture"
+              : isApiConfigured()
+                ? "Live backend"
+                : "Live model, unverified"}
           </MockTag>
         }
       >

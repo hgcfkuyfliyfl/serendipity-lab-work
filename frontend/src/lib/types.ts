@@ -116,6 +116,8 @@ export interface Run {
   fixture?: boolean;
   /** True when this run streams from the FastAPI backend (POST /api/collide) */
   backend?: boolean;
+  /** True when the app opened this cached demo by itself, because no run was in progress */
+  seeded?: boolean;
   /** Fixture only: milliseconds to wait before each trace event appears */
   delays?: number[];
   liveNote?: string;

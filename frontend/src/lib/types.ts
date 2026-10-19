@@ -100,7 +100,6 @@ export interface Run {
   trace: TraceEvent[];
   resultIds: string[];
   rejected: { id: string; reason: string; title?: string }[];
-  cachedFallback: boolean;
   /** Set when the structural abstraction came back from Gemini */
   abstraction?: Abstraction;
   abstractionNote?: string;
@@ -117,10 +116,15 @@ export interface Run {
 export interface ValidationCase {
   id: string;
   name: string;
+  /** development = used to build the system, so it cannot prove anything. held-out = proposed test. */
+  kind: "development" | "held-out (proposed)";
   researcherField: string;
   expectedSource: string;
-  baseline: string;
-  structural: string;
-  topK: string;
-  status: "Not Run" | "Awaiting Measured Data";
+  /** "—" until a real run is recorded. Never a placeholder number. */
+  baselineTop5: string;
+  baselineTop10: string;
+  structuralTop5: string;
+  structuralTop10: string;
+  status: "Not run";
+  note?: string;
 }

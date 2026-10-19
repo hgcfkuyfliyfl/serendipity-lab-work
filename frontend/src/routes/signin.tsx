@@ -38,15 +38,13 @@ function SignIn() {
           <Logo inverted />
         </Link>
         <div>
-          <p className="font-serif text-4xl leading-tight">
-            Traffic jams and ant trails share no words. They share a shape.
-          </p>
+          <p className="font-serif text-4xl leading-tight">Different fields. Same problems.</p>
           <p className="mt-4 max-w-md text-sm text-ink-muted">
             Serendipity Lab strips a problem down to its structure, then searches other fields for
             the same shape.
           </p>
         </div>
-        <p className="font-mono text-[11px] text-ink-muted">DEMO MODE · local mock data only</p>
+        <p className="font-mono text-[11px] text-ink-muted">PROTOTYPE · demo sign-in only</p>
       </div>
       <main className="flex items-center justify-center px-6 py-12">
         <form onSubmit={submit} className="w-full max-w-sm" noValidate>

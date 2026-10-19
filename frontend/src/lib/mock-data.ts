@@ -1,5 +1,5 @@
 import { HERO_FIXTURE_ABSTRACTION, HERO_REQUEST_TEXT } from "@/mock/hero";
-import type { Abstraction, Candidate, Field, ValidationCase } from "./types";
+import type { Abstraction, Field, ValidationCase } from "./types";
 
 export const FIELDS: Field[] = [
   "Robotics",
@@ -72,292 +72,41 @@ export const SAMPLE_SCENARIOS = [
 
 export const HERO_ABSTRACTION: Abstraction = HERO_FIXTURE_ABSTRACTION;
 
-export const DECOMPOSITION = [
-  "Detect failed or degraded nodes from local signals",
-  "Redistribute flow across surviving paths",
-  "Converge on good paths without a central planner",
-];
-
-export const CANDIDATES: Candidate[] = [
-  {
-    id: "ant-pheromone",
-    title: "Pheromone-Based Path Reinforcement in Foraging Ants",
-    field: "Ecology",
-    tags: ["swarm behaviour", "positive feedback", "path reinforcement"],
-    mockScore: 92,
-    reviewerConfidence: 74,
-    explanation:
-      "Ant colonies find short paths around obstacles using only local trail signals — the same decentralized rerouting problem.",
-    hypothesis:
-      "Vehicles (or roadside units) could deposit decaying 'virtual pheromone' on segments that moved quickly, letting routes re-form around an accident without a central planner.",
-    reviewStatus: "plausible",
-    source: {
-      citation: "Illustrative abstract — mock data, not a real quotation",
-      passage:
-        "Ants deposit pheromone trails along frequently used routes, which strengthens the trail over time and leads to more efficient routing in the colony. When an obstacle blocks a trail, evaporation allows alternative routes to dominate.",
-    },
-    mapping: [
-      {
-        source: "Pheromone trail reinforcement",
-        home: "Route reinforcement based on observed travel times",
-      },
-      { source: "Many individual ants", home: "Many vehicles or routing agents" },
-      { source: "Pheromone evaporation", home: "Decay of stale congestion information" },
-      { source: "Obstacle on trail", home: "Accident blocking an intersection" },
-    ],
-    reviewer: {
-      useful:
-        "Both systems rely on reinforcement and local information to guide complex, collective behaviour.",
-      similar: [
-        "Positive feedback on successful paths",
-        "Forgetting through decay",
-        "No central coordinator",
-      ],
-      assumptions: [
-        "Agents can sense and share local conditions",
-        "Reinforcement signals are reliable",
-        "Drivers comply with suggested routes",
-      ],
-      failure: [
-        "Urban traffic is more complex: drivers are strategic, not identical",
-        "Herding — everyone reroutes onto the same street",
-        "Sparse sensor coverage breaks the feedback loop",
-      ],
-      next: [
-        "Simulate the mechanism in a microscopic traffic model",
-        "Test evaporation rates on a small grid",
-        "Compare against standard dynamic shortest-path rerouting",
-      ],
-    },
-    image: "ant",
-  },
-  {
-    id: "slime-mould",
-    title: "Adaptive Tube Networks in Physarum Slime Mould",
-    field: "Biology",
-    tags: ["network adaptation", "flow feedback", "redundancy"],
-    mockScore: 88,
-    reviewerConfidence: 66,
-    explanation:
-      "The organism thickens tubes carrying more flow and thins idle ones, rebuilding efficient networks after damage.",
-    hypothesis:
-      "Lane-allocation or signal-timing could adapt like tube thickness: capacity follows recent flow, so the network re-balances after a blockage.",
-    reviewStatus: "plausible",
-    source: {
-      citation: "Illustrative abstract — mock data, not a real quotation",
-      passage:
-        "Tubes that carry greater protoplasmic flow become thicker, while tubes with little flow decline, producing networks that balance efficiency and fault tolerance.",
-    },
-    mapping: [
-      { source: "Tube thickness", home: "Road capacity / green-light time" },
-      { source: "Protoplasmic flow", home: "Vehicle flow" },
-      { source: "Network rewiring after cut", home: "Rerouting after an accident" },
-    ],
-    reviewer: {
-      useful: "Offers a mechanism for capacity to follow demand, not just route choice.",
-      similar: ["Flow-driven reinforcement", "Self-repair after damage"],
-      assumptions: ["Road capacity can be changed quickly", "Flow is measured continuously"],
-      failure: [
-        "Physical road capacity is mostly fixed",
-        "Adaptation in Physarum takes hours, accidents need minutes",
-      ],
-      next: [
-        "Restrict the analogy to signal timing, which can change quickly",
-        "Check timescale compatibility",
-      ],
-    },
-  },
-  {
-    id: "vascular",
-    title: "Collateral Blood Flow After Arterial Occlusion",
-    field: "Medicine",
-    tags: ["collateral paths", "redundant networks", "local regulation"],
-    mockScore: 81,
-    reviewerConfidence: 58,
-    explanation:
-      "When an artery is blocked, local pressure changes recruit pre-existing side vessels without central control.",
-    hypothesis:
-      "Pre-designate low-use 'collateral' streets that are automatically opened (signal priority) when a nearby arterial is blocked.",
-    reviewStatus: "contested",
-    source: { citation: "Evidence incomplete — no passage retrieved", passage: null },
-    mapping: [
-      { source: "Collateral vessels", home: "Parallel side streets" },
-      { source: "Pressure-driven recruitment", home: "Queue-length-triggered signal priority" },
-    ],
-    reviewer: {
-      useful:
-        "Suggests planning redundancy in advance rather than discovering it during a failure.",
-      similar: ["Redundant parallel paths", "Locally triggered activation"],
-      assumptions: [
-        "Side streets can absorb diverted volume",
-        "Residents accept occasional through-traffic",
-      ],
-      failure: [
-        "Source evidence missing — mapping is unverified",
-        "Blood is not strategic; drivers are",
-      ],
-      next: [
-        "Retrieve a real source passage before relying on this",
-        "Map candidate collateral streets on a test network",
-      ],
-    },
-  },
-  {
-    id: "packet-routing",
-    title: "Back-Pressure Routing in Wireless Packet Networks",
-    field: "Computer Science",
-    tags: ["queue signals", "distributed routing", "congestion"],
-    mockScore: 79,
-    reviewerConfidence: 80,
-    explanation:
-      "Each node forwards packets toward neighbours with shorter queues, using only local queue differences.",
-    hypothesis:
-      "Signal controllers could release vehicles toward downstream links with shorter queues (max-pressure control).",
-    reviewStatus: "supported",
-    source: {
-      citation: "Illustrative abstract — mock data, not a real quotation",
-      passage:
-        "Routing decisions are made by comparing queue backlogs between neighbouring nodes, requiring no global topology knowledge.",
-    },
-    mapping: [
-      { source: "Packet queue", home: "Vehicle queue at intersection" },
-      { source: "Queue differential", home: "Upstream vs. downstream congestion" },
-    ],
-    reviewer: {
-      useful: "Strong mechanistic fit, but the field is adjacent — the transfer is already known.",
-      similar: ["Local queue comparison", "No central planner"],
-      assumptions: ["Queue lengths are measurable"],
-      failure: ["Low serendipity: likely already familiar to the researcher"],
-      next: ["Use as a baseline to compare more distant candidates against"],
-    },
-  },
-  {
-    id: "market-signals",
-    title: "Price Signals as Decentralized Coordination in Markets",
-    field: "Economics",
-    tags: ["price signals", "incentives", "equilibrium"],
-    mockScore: 70,
-    reviewerConfidence: 52,
-    explanation:
-      "Prices aggregate dispersed local information so many actors re-allocate without a planner.",
-    hypothesis:
-      "Short-lived dynamic tolls around an incident could spread diverted traffic across several alternatives instead of one.",
-    reviewStatus: "contested",
-    source: {
-      citation: "Illustrative abstract — mock data, not a real quotation",
-      passage:
-        "The price system communicates information about scarcity to participants who need not know its cause.",
-    },
-    mapping: [
-      { source: "Price", home: "Dynamic toll / travel-time cost" },
-      { source: "Scarcity", home: "Reduced capacity after accident" },
-    ],
-    reviewer: {
-      useful: "Addresses the herding problem other candidates ignore.",
-      similar: ["Information aggregation through a single signal"],
-      assumptions: ["Drivers respond to price within minutes", "Tolling is legally possible"],
-      failure: ["Equity concerns", "Prices adjust slower than incidents unfold"],
-      next: ["Combine with a reinforcement mechanism rather than replace it"],
-    },
-  },
-  {
-    id: "mycelium",
-    title: "Resource Rerouting in Fungal Mycelial Networks",
-    field: "Ecology",
-    tags: ["foraging networks", "pruning", "transport"],
-    mockScore: 66,
-    reviewerConfidence: 48,
-    explanation:
-      "Mycelia prune unproductive branches and reinforce those connected to food, re-routing transport after damage.",
-    hypothesis:
-      "Temporarily 'prune' low-value turns at signals near an incident to concentrate flow on productive corridors.",
-    reviewStatus: "plausible",
-    source: { citation: "Evidence incomplete — no passage retrieved", passage: null },
-    mapping: [
-      { source: "Branch pruning", home: "Turn restrictions" },
-      { source: "Nutrient transport", home: "Vehicle throughput" },
-    ],
-    reviewer: {
-      useful: "Adds a pruning operation that pure reinforcement lacks.",
-      similar: ["Reinforce + prune loop"],
-      assumptions: ["Turn restrictions can be applied dynamically"],
-      failure: ["Evidence missing", "Weak mechanistic detail"],
-      next: ["Find a source passage before further consideration"],
-    },
-  },
-  {
-    id: "granular-jamming",
-    title: "Clogging and Unjamming in Granular Flow Through Bottlenecks",
-    field: "Physics",
-    tags: ["jamming", "bottlenecks", "intermittency"],
-    mockScore: 63,
-    reviewerConfidence: 55,
-    explanation:
-      "Grains passing a narrow outlet form arches that stop flow; small perturbations break them.",
-    hypothesis:
-      "Brief, staggered release patterns at a bottleneck near an accident may reduce gridlock 'arches'.",
-    reviewStatus: "contested",
-    source: {
-      citation: "Illustrative abstract — mock data, not a real quotation",
-      passage:
-        "Flow through an orifice is interrupted by arch formation; vibration can restore flow by destabilizing arches.",
-    },
-    mapping: [
-      { source: "Arch formation", home: "Gridlock at blocked junction" },
-      { source: "Vibration", home: "Staggered signal pulses" },
-    ],
-    reviewer: {
-      useful: "Explains a failure mode, not a routing strategy.",
-      similar: ["Bottleneck dynamics"],
-      assumptions: ["Vehicles behave like grains near bottlenecks"],
-      failure: ["Addresses local jams, not network rerouting"],
-      next: ["Treat as complementary to a routing candidate"],
-    },
-  },
-];
-
-export const CONVENTIONAL_RESULTS = [
-  {
-    title: "Traffic management systems during incidents",
-    field: "Civil Engineering",
-    note: "Topically on target; same vocabulary as the query.",
-    evidence: true,
-  },
-  {
-    title: "Urban planning models for road networks",
-    field: "Civil Engineering",
-    note: "Relevant background; stays in the home field.",
-    evidence: true,
-  },
-  {
-    title: "Road network optimization with shortest paths",
-    field: "Operations Research",
-    note: "Useful baseline methods; centralized.",
-    evidence: true,
-  },
-  {
-    title: "Incident detection from loop detectors",
-    field: "Civil Engineering",
-    note: "Strong match for detection sub-problem.",
-    evidence: false,
-  },
-];
+const NOT_RUN = {
+  baselineTop5: "—",
+  baselineTop10: "—",
+  structuralTop5: "—",
+  structuralTop10: "—",
+  status: "Not run" as const,
+};
 
 export const VALIDATION_CASES: ValidationCase[] = [
-  ["Burr seeds → Velcro", "Materials Science", "Botany"],
-  ["Kingfisher beak → Shinkansen nose", "Engineering", "Biology"],
-  ["Metallurgical annealing → Simulated annealing", "Computer Science", "Metallurgy"],
-  ["Ant foraging → Ant colony optimization", "Computer Science", "Ecology"],
-  ["Bacterial immunity → CRISPR", "Biotechnology", "Microbiology"],
-  ["Termite mounds → Passive ventilation", "Architecture", "Ecology"],
-  ["Shark skin → Drag-reducing surfaces", "Fluid Engineering", "Biology"],
-].map(([name, researcherField, expectedSource], i) => ({
-  id: `v${i}`,
-  name,
-  researcherField,
-  expectedSource,
-  baseline: "—",
-  structural: "—",
-  topK: "—",
-  status: i < 4 ? "Not Run" : "Awaiting Measured Data",
-}));
+  {
+    id: "v-hero",
+    name: "Robot grasping → granular jamming",
+    kind: "development",
+    researcherField: "Robotics / mechanical engineering",
+    expectedSource: "Soft matter / statistical physics (jamming)",
+    note: "Known historical collision used to build the demo. It shows the pipeline end to end and proves nothing on its own. Pre-registered acceptable hits in the corpus: O'Hern et al. 2003, Cates et al. 1998, Trappe et al. 2001. Liu 2010 is typed as a review and the corpus keeps articles only. The outcome paper (Brown et al., PNAS 2010) is excluded from the corpus, so it can never be retrieved.",
+    ...NOT_RUN,
+  },
+  ...(
+    [
+      ["Burr seeds → Velcro", "Materials Science", "Botany"],
+      ["Kingfisher beak → Shinkansen nose", "Engineering", "Biology"],
+      ["Metallurgical annealing → Simulated annealing", "Computer Science", "Metallurgy"],
+      ["Ant foraging → Ant colony optimization", "Computer Science", "Ecology"],
+      ["Bacterial immunity → CRISPR", "Biotechnology", "Microbiology"],
+      ["Termite mounds → Passive ventilation", "Architecture", "Ecology"],
+      ["Shark skin → Drag-reducing surfaces", "Fluid Engineering", "Biology"],
+    ] as const
+  ).map(([name, researcherField, expectedSource], i) => ({
+    id: `v${i}`,
+    name,
+    kind: "held-out (proposed)" as const,
+    researcherField,
+    expectedSource,
+    note: "Not run. Whether the source papers exist in the corpus has not been checked.",
+    ...NOT_RUN,
+  })),
+];

@@ -54,11 +54,12 @@ function Settings() {
           <Switch id="rm" checked={reduce} onCheckedChange={actions.setReduceMotion} />
         </Row>
         <h2 className="mt-8 text-xl">
-          Demo mode <MockTag>Always on</MockTag>
+          Data sources <MockTag>Prototype</MockTag>
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Every result, score, passage and reviewer note comes from local fixtures. No backend,
-          model or API key is used.
+          The hero text replays a frozen fixture from src/mock: real passages and DOIs, placeholder
+          scores and reviewer notes. Any other text goes to Gemini through the server, from its
+          general knowledge, with no paper corpus and no source passages.
         </p>
         <Row
           id="sf"

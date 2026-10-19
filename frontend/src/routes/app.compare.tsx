@@ -2,8 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Minus } from "lucide-react";
 import { useEffect } from "react";
 import { btn, FieldTag, MockTag, PageHeader } from "@/components/lab";
-import { CONVENTIONAL_RESULTS } from "@/lib/mock-data";
-import { getResults } from "@/lib/service";
+import { getResults, isGrounded } from "@/lib/service";
 import { actions, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/app/compare")({ component: Compare });
@@ -25,14 +24,14 @@ function Compare() {
     actions.ensureRun();
   }, []);
   if (!run) return null;
-  const structural = getResults(run).slice(0, 4);
+  const structural = getResults(run).filter(isGrounded).slice(0, 4);
 
   return (
     <>
       <PageHeader
         eyebrow="Compare"
         title="Same problem, two kinds of search"
-        aside={<MockTag>Illustrative, no benchmark run</MockTag>}
+        aside={<MockTag>No benchmark run</MockTag>}
       >
         Both columns answer the same input. Neither is "better" here: they find different things.
         See the Validation page for how this will be measured.
@@ -53,21 +52,16 @@ function Compare() {
           <p className="text-sm text-muted-foreground">
             Ranks by topic and keyword overlap. Strong for finding known work.
           </p>
-          <ol className="mt-4 divide-y divide-border border-y border-border">
-            {CONVENTIONAL_RESULTS.map((r) => (
-              <li key={r.title} className="py-4">
-                <p className="font-medium">{r.title}</p>
-                <div className="mt-1 flex items-center gap-3">
-                  <FieldTag field={r.field} />
-                  <Ev yes={r.evidence} />
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{r.note}</p>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Example titles are illustrative and not linked to real papers.
-          </p>
+          <div
+            role="status"
+            className="mt-4 rounded-md border border-dashed border-border bg-card p-5 text-sm"
+          >
+            <p className="font-medium">No baseline search is connected yet.</p>
+            <p className="mt-1 text-muted-foreground">
+              Nothing is shown here rather than invented titles. The baseline (embedding search over
+              raw abstracts) is measured on the Validation page, where every number is still unrun.
+            </p>
+          </div>
         </section>
 
         <section aria-labelledby="struct">

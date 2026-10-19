@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { btn, EmptyState, FieldTag, PageHeader } from "@/components/lab";
+import { btn, EmptyState, FieldTag, PageHeader, ProvenanceChip } from "@/components/lab";
 import { getCandidate } from "@/lib/service";
 import { actions, useStore } from "@/lib/store";
 import type { Candidate } from "@/lib/types";
@@ -59,7 +59,10 @@ function Saved() {
             {shown.map((c) => (
               <li key={c.id} className="flex flex-wrap items-start justify-between gap-4 py-5">
                 <div className="max-w-2xl">
-                  <FieldTag field={c.field} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <FieldTag field={c.field} />
+                    <ProvenanceChip c={c} />
+                  </div>
                   <h2 className="mt-2 text-lg">{c.title}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">{c.hypothesis}</p>
                   <p className="mt-2 text-xs text-muted-foreground">

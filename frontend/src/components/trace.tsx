@@ -28,6 +28,7 @@ export function TraceRow({ e, index }: { e: TraceEvent; index: number }) {
       className={cn(
         "grid grid-cols-[2rem_1fr_auto] gap-x-3 border-b border-border py-4 last:border-0",
         e.state === "waiting" && "opacity-60",
+        e.step === "reviewing" && /^Rejected/.test(e.message) && "border-l-2 border-l-ochre pl-3",
       )}
       aria-current={e.state === "running" ? "step" : undefined}
     >
@@ -189,6 +190,58 @@ export function LiveFeed({ run }: { run: Run }) {
         ))}
         {run.status === "running" && <p className="animate-pulse text-ink-muted">...</p>}
       </div>
+    </div>
+  );
+}
+
+const STAGES: { label: string; steps: string[] }[] = [
+  { label: "Abstraction", steps: ["abstracting"] },
+  { label: "Decomposition", steps: ["decomposing"] },
+  { label: "Retrieval (home field excluded)", steps: ["retrieving"] },
+  { label: "Skeptical review", steps: ["reviewing", "llm_retry"] },
+  { label: "Refinement (max 2)", steps: ["rewriting"] },
+  { label: "Ranking", steps: ["ranking"] },
+  { label: "Translation", steps: ["translating"] },
+  { label: "Prior-art check", steps: ["prior_art"] },
+];
+
+/** The expected stages, each marked from the events that actually exist in this run. */
+export function StageRail({ run }: { run: Run }) {
+  const loops = run.trace.filter((e) => e.step === "rewriting" && e.state === "completed").length;
+  return (
+    <div className="mb-6">
+      <ol className="flex flex-wrap gap-2" aria-label="Stages of this run">
+        {STAGES.map((st) => {
+          const evs = run.trace.filter((e) => st.steps.includes(e.step));
+          const state = !evs.length
+            ? "none"
+            : evs.some((e) => e.state === "failed")
+              ? "failed"
+              : evs.some((e) => e.state === "running")
+                ? "running"
+                : evs.every((e) => e.state === "completed")
+                  ? "done"
+                  : "waiting";
+          return (
+            <li
+              key={st.label}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs",
+                state === "done" && "border-forest/40 text-forest",
+                state === "running" && "border-primary bg-primary/10 text-primary",
+                state === "failed" && "border-terracotta/50 text-terracotta",
+                (state === "waiting" || state === "none") && "border-border text-muted-foreground",
+              )}
+            >
+              {st.label}
+              {state === "none" && <span className="ml-1 opacity-70">· no event in this run</span>}
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Refinement loops used: {loops} of a maximum of 2.
+      </p>
     </div>
   );
 }

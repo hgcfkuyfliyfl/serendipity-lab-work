@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FileCheck2, FileWarning } from "lucide-react";
 import gsap from "gsap";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   btn,
   EmptyState,
@@ -10,13 +10,14 @@ import {
   PageHeader,
   HeresyBadge,
   MatchedChip,
+  ProvenanceChip,
   ReviewBadge,
   SaveButton,
   ScoreBar,
 } from "@/components/lab";
 import { MiniGraph } from "@/components/mini-graph";
 import { ADJACENT } from "@/lib/mock-data";
-import { getResults } from "@/lib/service";
+import { getResults, isGrounded } from "@/lib/service";
 import { actions, useStore } from "@/lib/store";
 import type { ReviewStatus } from "@/lib/types";
 
@@ -86,18 +87,25 @@ function Results() {
           sort === "score"
             ? b.mockScore - a.mockScore
             : (b.reviewerConfidence ?? 0) - (a.reviewerConfidence ?? 0),
-        ),
+        )
+        // Evidence rule: anything without a passage and a mapping goes below, clearly labelled.
+        .sort((a, b) => Number(isGrounded(b)) - Number(isGrounded(a))),
     [all, field, status, evidence, sort],
   );
   if (!run) return null;
   const home = run.input.homeFields[0];
   const fields = [...new Set(all.map((c) => c.field))];
+  const groundedCount = all.filter(isGrounded).length;
 
   return (
     <>
       <PageHeader
         eyebrow="Results"
-        title={`${all.length} cross-domain candidates`}
+        title={
+          groundedCount === all.length
+            ? `${all.length} cross-domain candidates`
+            : `${groundedCount} grounded, ${all.length - groundedCount} ungrounded`
+        }
         aside={
           <MockTag>
             {all[0]?.live
@@ -188,7 +196,26 @@ function Results() {
         </label>
       </form>
 
-      {shown.length === 0 ? (
+      {all.length === 0 ? (
+        <EmptyState
+          title={
+            run.liveStage === "failed" ? "No results: the live search failed" : "No results yet"
+          }
+          action={
+            <>
+              <button className={btn.primary} onClick={() => actions.run(run.input)}>
+                Retry run
+              </button>
+              <button className={btn.secondary} onClick={actions.loadCached}>
+                Play cached hero demo
+              </button>
+            </>
+          }
+        >
+          {run.liveNote ??
+            "Run a search from Discover. Results appear here only when they exist for your text."}
+        </EmptyState>
+      ) : shown.length === 0 ? (
         <EmptyState
           title="No candidates match these filters"
           action={
@@ -209,77 +236,108 @@ function Results() {
       ) : (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <ul ref={listRef} className="divide-y divide-border border-y border-border">
-            {shown.map((c) => {
+            {shown.map((c, i) => {
               const adjacent = ADJACENT[home]?.includes(c.field);
+              const firstLoose = !isGrounded(c) && (i === 0 || isGrounded(shown[i - 1]!));
               return (
-                <li
-                  key={c.id}
-                  onMouseEnter={() => setHot(c.id)}
-                  onMouseLeave={() => setHot(null)}
-                  className={`grid gap-4 px-2 py-6 transition-colors md:grid-cols-[1fr_9rem] ${hot === c.id ? "bg-secondary" : ""}`}
-                >
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <FieldTag field={c.field} />
-                      <span className="text-xs text-muted-foreground">
-                        {adjacent ? `Adjacent to ${home}` : `Distant from ${home}`}
-                      </span>
-                      {c.reviewStatus && <ReviewBadge status={c.reviewStatus} />}
-                      {c.heresy && <HeresyBadge level={c.heresy} />}
-                      {c.matchedOn && <MatchedChip on={c.matchedOn} />}
-                    </div>
-                    <h2 className="mt-2 text-xl">
-                      <Link
-                        to="/app/candidate/$id"
-                        params={{ id: c.id }}
-                        className="hover:underline"
-                      >
-                        {c.title}
-                      </Link>
-                    </h2>
-                    {c.explanation && (
-                      <p className="mt-1 text-sm text-muted-foreground">{c.explanation}</p>
-                    )}
-                    <p className="mt-3 border-l-2 border-primary pl-3 text-sm">
-                      <span className="font-medium">What if: </span>
-                      {c.hypothesis}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        {c.source.passage ? (
-                          <FileCheck2 className="h-3.5 w-3.5 text-forest" aria-hidden />
-                        ) : (
-                          <FileWarning className="h-3.5 w-3.5 text-terracotta" aria-hidden />
+                <Fragment key={c.id}>
+                  {firstLoose && (
+                    <li className="bg-secondary px-3 py-3 text-sm">
+                      <strong className="font-medium">Not grounded.</strong> These are the model's
+                      own suggestions. No source passage was retrieved, so they are not evidence.
+                    </li>
+                  )}
+                  <li
+                    onMouseEnter={() => setHot(c.id)}
+                    onMouseLeave={() => setHot(null)}
+                    className={`grid gap-4 px-2 py-6 transition-colors md:grid-cols-[1fr_9rem] ${hot === c.id ? "bg-secondary" : ""}`}
+                  >
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <FieldTag field={c.field} />
+                        {!c.heresy && (
+                          <span className="text-xs text-muted-foreground">
+                            {adjacent ? `Adjacent to ${home}` : `Distant from ${home}`}
+                          </span>
                         )}
-                        {c.source.passage
-                          ? c.fixture
-                            ? "Verbatim source passage"
-                            : "Source passage (illustrative)"
-                          : "Evidence incomplete"}
-                      </span>
-                      {c.tags.map((t) => (
-                        <span key={t}>#{t}</span>
-                      ))}
+                        <ProvenanceChip c={c} />
+                        {c.reviewStatus && <ReviewBadge status={c.reviewStatus} />}
+                        {c.heresy && <HeresyBadge level={c.heresy} />}
+                        {c.matchedOn && <MatchedChip on={c.matchedOn} />}
+                      </div>
+                      <h2 className="mt-2 text-xl">
+                        <Link
+                          to="/app/candidate/$id"
+                          params={{ id: c.id }}
+                          className="hover:underline"
+                        >
+                          {c.title}
+                        </Link>
+                      </h2>
+                      {c.paper && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {[c.paper.venue, c.paper.year && `(${c.paper.year})`]
+                            .filter(Boolean)
+                            .join(" ")}
+                          {c.paper.doi && (
+                            <>
+                              {" · "}
+                              <a
+                                href={c.paper.doi}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline underline-offset-2"
+                              >
+                                DOI
+                              </a>
+                            </>
+                          )}
+                        </p>
+                      )}
+                      {c.explanation && (
+                        <p className="mt-1 text-sm text-muted-foreground">{c.explanation}</p>
+                      )}
+                      <p className="mt-3 border-l-2 border-primary pl-3 text-sm">
+                        <span className="font-medium">What if: </span>
+                        {c.hypothesis}
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          {c.source.passage ? (
+                            <FileCheck2 className="h-3.5 w-3.5 text-forest" aria-hidden />
+                          ) : (
+                            <FileWarning className="h-3.5 w-3.5 text-terracotta" aria-hidden />
+                          )}
+                          {c.source.passage
+                            ? c.fixture
+                              ? "Verbatim source passage"
+                              : "Source passage (illustrative)"
+                            : "Evidence incomplete"}
+                        </span>
+                        {c.tags.map((t) => (
+                          <span key={t}>#{t}</span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-row items-start justify-between gap-3 md:flex-col md:items-stretch">
-                    <ScoreBar
-                      value={c.mockScore}
-                      label={
-                        c.live ? "Model estimate" : c.fixture ? "Placeholder score" : "Demo score"
-                      }
-                    />
-                    {c.reviewerConfidence !== undefined && (
-                      <ScoreBar value={c.reviewerConfidence} label="Reviewer conf." />
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Link to="/app/candidate/$id" params={{ id: c.id }} className={btn.primary}>
-                        Why?
-                      </Link>
-                      <SaveButton id={c.id} compact />
+                    <div className="flex flex-row items-start justify-between gap-3 md:flex-col md:items-stretch">
+                      <ScoreBar
+                        value={c.mockScore}
+                        label={
+                          c.live ? "Model estimate" : c.fixture ? "Placeholder score" : "Demo score"
+                        }
+                      />
+                      {c.reviewerConfidence !== undefined && (
+                        <ScoreBar value={c.reviewerConfidence} label="Reviewer conf." />
+                      )}
+                      <div className="flex items-center gap-1">
+                        <Link to="/app/candidate/$id" params={{ id: c.id }} className={btn.primary}>
+                          Why?
+                        </Link>
+                        <SaveButton id={c.id} compact />
+                      </div>
                     </div>
-                  </div>
-                </li>
+                  </li>
+                </Fragment>
               );
             })}
           </ul>

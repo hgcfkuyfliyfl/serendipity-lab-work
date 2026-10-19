@@ -1,45 +1,82 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CircleDashed, Hourglass } from "lucide-react";
+import { CircleDashed } from "lucide-react";
 import { MockTag, PageHeader } from "@/components/lab";
 import { getValidationCases } from "@/lib/service";
 
 export const Route = createFileRoute("/app/validation")({ component: Validation });
 
+const dash = (v: string) =>
+  v === "—" ? (
+    <span aria-label="not measured" className="text-muted-foreground">
+      —
+    </span>
+  ) : (
+    v
+  );
+
 function Validation() {
   const cases = getValidationCases();
-  const run = cases.filter((c) => c.baseline !== "—").length;
+  const measured = cases.filter((c) => c.status !== "Not run").length;
   return (
     <>
       <PageHeader
         eyebrow="Validation"
         title="How do we know it works?"
-        aside={<MockTag>{run} cases measured</MockTag>}
+        aside={<MockTag>{measured} cases measured</MockTag>}
       >
         We test on famous historical cross-domain breakthroughs. The question: does the true source
-        field show up in the top 5 or top 10?
+        field or paper show up in the top 5 or top 10, compared with plain embedding search?
       </PageHeader>
 
-      <p role="status" className="mb-8 rounded-md border border-ochre/50 bg-card p-4 text-sm">
+      <p role="status" className="mb-4 rounded-md border border-ochre/50 bg-card p-4 text-sm">
         <strong className="font-medium">
-          {run} of {cases.length} cases have been run.
+          {measured} of {cases.length} cases have been run.
         </strong>{" "}
-        No hit rate or superiority claim is made until measured data is entered below.
+        No hit rate, win rate or superiority claim is shown until real runs are recorded. Every
+        number below is a dash on purpose.
+      </p>
+      <p className="mb-8 text-sm text-muted-foreground">
+        Related work: Literature-Based Discovery finds hidden links inside connected literatures,
+        analogy mining is our closest academic relative, and TRIZ is a manual method. We automate
+        the cross-domain structural search and measure it against a baseline.
       </p>
 
       <div className="overflow-x-auto rounded-md border border-border">
-        <table className="w-full min-w-[56rem] text-sm">
+        <table className="w-full min-w-[64rem] text-sm">
+          <caption className="sr-only">
+            Validation cases. Baseline and structural results, top 5 and top 10 shown separately.
+          </caption>
           <thead className="bg-secondary text-left">
             <tr>
-              {[
-                "Test case",
-                "Researcher's field",
-                "Expected source",
-                "Baseline (raw abstracts)",
-                "Structural discovery",
-                "Top-5 / Top-10",
-                "Status",
-              ].map((h) => (
-                <th key={h} scope="col" className="p-3 font-medium">
+              <th scope="col" rowSpan={2} className="p-3 font-medium">
+                Test case
+              </th>
+              <th scope="col" rowSpan={2} className="p-3 font-medium">
+                Type
+              </th>
+              <th scope="col" rowSpan={2} className="p-3 font-medium">
+                Researcher's field
+              </th>
+              <th scope="col" rowSpan={2} className="p-3 font-medium">
+                Expected source
+              </th>
+              <th scope="colgroup" colSpan={2} className="border-l border-border p-2 font-medium">
+                Baseline (raw abstracts)
+              </th>
+              <th scope="colgroup" colSpan={2} className="border-l border-border p-2 font-medium">
+                Structural discovery
+              </th>
+              <th scope="col" rowSpan={2} className="border-l border-border p-3 font-medium">
+                Status
+              </th>
+            </tr>
+            <tr>
+              {["Top 5", "Top 10", "Top 5", "Top 10"].map((h, i) => (
+                <th
+                  key={i}
+                  scope="col"
+                  className={`p-2 text-xs font-medium ${i % 2 === 0 ? "border-l border-border" : ""}`}
+                >
                   {h}
                 </th>
               ))}
@@ -50,19 +87,22 @@ function Validation() {
               <tr key={c.id} className="border-t border-border align-top">
                 <th scope="row" className="p-3 text-left font-medium">
                   {c.name}
+                  {c.note && (
+                    <span className="mt-1 block max-w-xs text-xs font-normal text-muted-foreground">
+                      {c.note}
+                    </span>
+                  )}
                 </th>
+                <td className="p-3 text-xs text-muted-foreground">{c.kind}</td>
                 <td className="p-3 text-muted-foreground">{c.researcherField}</td>
                 <td className="p-3 text-muted-foreground">{c.expectedSource}</td>
-                <td className="p-3 font-mono text-muted-foreground">{c.baseline}</td>
-                <td className="p-3 font-mono text-muted-foreground">{c.structural}</td>
-                <td className="p-3 font-mono text-muted-foreground">{c.topK}</td>
-                <td className="p-3">
+                <td className="border-l border-border p-3 font-mono">{dash(c.baselineTop5)}</td>
+                <td className="p-3 font-mono">{dash(c.baselineTop10)}</td>
+                <td className="border-l border-border p-3 font-mono">{dash(c.structuralTop5)}</td>
+                <td className="p-3 font-mono">{dash(c.structuralTop10)}</td>
+                <td className="border-l border-border p-3">
                   <span className="inline-flex items-center gap-1.5">
-                    {c.status === "Not Run" ? (
-                      <CircleDashed className="h-4 w-4" aria-hidden />
-                    ) : (
-                      <Hourglass className="h-4 w-4" aria-hidden />
-                    )}
+                    <CircleDashed className="h-4 w-4" aria-hidden />
                     {c.status}
                   </span>
                 </td>
@@ -82,15 +122,23 @@ function Validation() {
               Structural: abstract each paper and the query, then search those abstractions with the
               home field excluded.
             </li>
-            <li>Record whether the true source appears in the top 5 and top 10.</li>
-            <li>Report all results, including losses.</li>
+            <li>
+              Record whether the true source appears in the top 5 and, separately, the top 10.
+            </li>
+            <li>
+              Report every result as hits out of cases run, including losses. The denominator is
+              always the number of cases actually run.
+            </li>
           </ol>
         </div>
         <div>
           <h2 className="text-xl">Limits</h2>
           <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
             <li>The source papers must exist in the corpus, or the test means nothing.</li>
-            <li>Seven cases are a sanity check, not a statistical proof.</li>
+            <li>A handful of cases is a sanity check, not a statistical proof.</li>
+            <li>
+              The development case was used to build the demo, so it cannot count as evidence.
+            </li>
             <li>Historical cases are known now. The query wording may leak hints.</li>
             <li>Abstraction quality depends on the language model used.</li>
           </ul>

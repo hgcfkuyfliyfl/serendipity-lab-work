@@ -56,6 +56,9 @@ export const HERO_FIXTURE_ABSTRACTION: Abstraction = {
 };
 
 export const isHeroText = (t: string) => t.trim() === HERO_REQUEST_TEXT;
+/** The fixture was recorded for this exact text AND this home field. Anything else is a live run. */
+export const isHeroInput = (i: { text: string; homeFields: string[] }) =>
+  isHeroText(i.text) && i.homeFields.length === 1 && i.homeFields[0] === "Robotics";
 
 const doiUrl = (d: string) => (d.startsWith("http") ? d : `https://doi.org/${d}`);
 

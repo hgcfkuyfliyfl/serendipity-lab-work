@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, RefreshCw, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { btn, MockTag, PageHeader } from "@/components/lab";
-import { LiveFeed, TraceList, TraceMini } from "@/components/trace";
+import { LiveFeed, StageRail, TraceList, TraceMini } from "@/components/trace";
 import { getCandidate } from "@/lib/service";
 import { actions, useStore } from "@/lib/store";
 
@@ -29,23 +29,25 @@ function TracePage() {
       <PageHeader
         eyebrow="Agent trace"
         title="What the agent did"
-        aside={<MockTag>{run.fixture ? "Mock fixture playback" : "Simulated workflow"}</MockTag>}
+        aside={
+          <MockTag>{run.fixture ? "Cached fixture playback" : "Live model, no corpus"}</MockTag>
+        }
       >
         {run.fixture
           ? "The agent decomposes your problem, retrieves, lets a skeptic reject candidates, then rewrites its own queries and retrieves again. Each line is one event from the run."
-          : "Nine steps run in a fixed order, so the demo is the same every time. The feed shows what it opens, reads and objects to. Refinement is capped at two loops."}
+          : "Live run: Gemini restates your problem, proposes analogies from its own knowledge, and a second call challenges them. No paper corpus is searched and no refinement loop runs."}
       </PageHeader>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-live="polite">
-          {!run.fixture && <LiveFeed run={run} />}
+          {run.fixture ? <StageRail run={run} /> : <LiveFeed run={run} />}
           <TraceList run={run} />
           {failed && (
             <div
               role="alert"
               className="mt-4 rounded-md border border-terracotta/50 bg-card p-4 text-sm"
             >
-              <p className="font-medium">Retrieval did not finish.</p>
+              <p className="font-medium">This run did not finish.</p>
               <p className="mt-1 text-muted-foreground">
                 {stopped?.message} Nothing was lost: your input is kept.
               </p>
@@ -70,12 +72,6 @@ function TracePage() {
               verified.
             </p>
           )}
-          {run.cachedFallback && done && !run.liveNote && !run.candidates && (
-            <p className="mt-4 text-sm text-muted-foreground">
-              The abstraction of your text is live (Gemini). The ranked candidates are still the
-              cached demo set, because no real corpus is connected yet.
-            </p>
-          )}
         </section>
 
         <aside className="space-y-6 lg:border-l lg:border-border lg:pl-8">
@@ -96,7 +92,7 @@ function TracePage() {
             </button>
             <button className={btn.secondary} onClick={actions.loadCached}>
               <Zap className="h-4 w-4" />
-              Open cached demo run
+              {run.fixture ? "Open cached demo run" : "Play cached hero demo (different problem)"}
             </button>
             <Link to="/app/discover" className={btn.ghost}>
               <ArrowLeft className="h-4 w-4" />

@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { AlertCircle, Play, RotateCcw, Search } from "lucide-react";
+import { AlertCircle, Play, RotateCcw, Search, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { btn, Chip, MockTag, PageHeader } from "@/components/lab";
 import { TraceMini } from "@/components/trace";
 import { FIELDS, HERO_ABSTRACTION, HERO_TEXT, SAMPLE_SCENARIOS } from "@/lib/mock-data";
 import { FIXED } from "@/lib/serendipity";
 import { actions, useStore } from "@/lib/store";
+import { isHeroInput } from "@/lib/service";
 import type { Field } from "@/lib/types";
 
 export const Route = createFileRoute("/app/discover")({ component: Discover });
@@ -35,7 +36,18 @@ function Discover() {
   const find = () => {
     if (error) return;
     actions.run(draft);
-    navigate({ to: "/app/trace" });
+    navigate({ to: "/app/trace", search: { demo: false } });
+  };
+  const heroDraft = { text: HERO_TEXT, homeFields: ["Robotics" as Field], serendipity: FIXED };
+  const playHero = () => {
+    actions.setDraft(heroDraft);
+    actions.run(heroDraft);
+    navigate({ to: "/app/trace", search: { demo: false } });
+  };
+  const skipToResults = () => {
+    actions.setDraft(heroDraft);
+    actions.loadCached();
+    navigate({ to: "/app/results" });
   };
   const loadDemo = () => {
     actions.setDraft({
@@ -43,22 +55,49 @@ function Discover() {
       homeFields: ["Robotics"],
       serendipity: FIXED,
     });
-    toast("Demo scenario loaded: robot grasping");
+    toast("Hero text loaded. Press Find Collisions to replay the cached run.");
   };
   const live = run?.abstraction && run.input.text === text ? run.abstraction : null;
   const shownAbs = live ?? (text === HERO_TEXT ? HERO_ABSTRACTION : null);
-  const isHero = text === HERO_TEXT;
+  const isHero = isHeroInput(draft);
 
   return (
     <>
       <PageHeader
         eyebrow="Discover"
         title="Find Cross-Domain Collisions"
-        aside={<MockTag>Live Gemini, unverified</MockTag>}
+        aside={<MockTag>{isHero ? "Cached fixture" : "Live model, unverified"}</MockTag>}
       >
         Describe your research problem in plain terms. The agent strips the domain words, then looks
         for problems with the same structure in other fields.
       </PageHeader>
+
+      <section
+        aria-labelledby="hero-h"
+        className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/30 bg-card p-5"
+      >
+        <div className="max-w-xl">
+          <p className="eyebrow">Start here</p>
+          <h2 id="hero-h" className="mt-1 text-xl">
+            Play the cached hero demo
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            A frozen run on a robot-gripper problem. Real papers, real source passages and DOIs.
+            Scores, heresy labels and reviewer notes are placeholders. No live model and no corpus
+            are used.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={playHero} className={btn.primary}>
+            <Play className="h-4 w-4" />
+            Play cached hero demo
+          </button>
+          <button onClick={skipToResults} className={btn.secondary}>
+            <Zap className="h-4 w-4" />
+            Skip to results
+          </button>
+        </div>
+      </section>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-8">
@@ -81,7 +120,7 @@ function Discover() {
                 }}
                 aria-invalid={!!error && text.trim().length < MIN}
                 aria-describedby="problem-help"
-                placeholder="Optimizing traffic routing through a city grid during accidents…"
+                placeholder="Describe your problem in your own field's words…"
                 className="mt-2 block w-full resize-none bg-transparent font-serif text-2xl font-semibold leading-snug outline-none placeholder:font-normal placeholder:text-muted-foreground/50 md:text-3xl"
               />
               <div id="problem-help" className="mt-2 flex justify-between gap-4 text-xs">
@@ -101,7 +140,9 @@ function Discover() {
               <fieldset className="mt-4 border-t border-border/70 pt-4">
                 <legend className="sr-only">Home field, excluded from results</legend>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="mr-1 text-xs text-muted-foreground">Home field</span>
+                  <span className="mr-1 text-xs text-muted-foreground">
+                    Home field (excluded from results)
+                  </span>
                   {FIELDS.map((f) => (
                     <Chip key={f} active={homeFields.includes(f)} onClick={() => toggleField(f)}>
                       {f}
@@ -113,7 +154,7 @@ function Discover() {
                 <div className="flex gap-1">
                   <button className={btn.ghost} onClick={loadDemo}>
                     <Play className="h-4 w-4" />
-                    Load demo
+                    Load hero text
                   </button>
                   <button
                     className={btn.ghost}
@@ -141,6 +182,26 @@ function Discover() {
             </div>
           </section>
 
+          <p
+            role="status"
+            className={`rounded-md border p-4 text-sm ${isHero ? "border-forest/40" : "border-ochre/50"}`}
+          >
+            {isHero ? (
+              <>
+                <strong className="font-medium">Cached fixture.</strong> Running this replays a
+                frozen run. Real papers, passages and DOIs; placeholder scores. No live model and no
+                corpus are used.
+              </>
+            ) : (
+              <>
+                <strong className="font-medium">Live model, no corpus.</strong> This text has no
+                fixture. Running it asks Gemini from its general knowledge. Results are unverified
+                suggestions with no source passages, and they are labelled ungrounded. If Gemini
+                fails you get an error, not the hero results.
+              </>
+            )}
+          </p>
+
           <div>
             <p className="eyebrow mb-2">Try a sample scenario</p>
             <div className="flex flex-wrap gap-2">
@@ -150,29 +211,31 @@ function Discover() {
                   active={text === s.text}
                   onClick={() => actions.setDraft({ text: s.text, homeFields: s.home })}
                 >
-                  {s.label}
+                  {s.id === "grasp"
+                    ? `${s.label} (cached fixture)`
+                    : `${s.label} (live, experimental)`}
                 </Chip>
               ))}
             </div>
-            {!isHero && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Prototype note: only the traffic-routing scenario has a full set of fixtures. Other
-                text falls back to the cached hero results and the trace says so.
-              </p>
-            )}
           </div>
         </div>
 
         <aside className="space-y-8 lg:border-l lg:border-border lg:pl-8">
           <section>
             <p className="eyebrow">
-              Structural abstraction <MockTag>{live ? "Gemini live" : "Cached"}</MockTag>
+              Structural abstraction{" "}
+              <MockTag>{live ? "Gemini live, unverified" : "Cached fixture"}</MockTag>
             </p>
             {shownAbs ? (
               <div className="mt-3 text-sm">
                 <p className="font-serif text-lg leading-snug">{shownAbs.functional_problem}</p>
                 {shownAbs.mechanism && (
                   <p className="mt-3 text-muted-foreground">{shownAbs.mechanism}</p>
+                )}
+                {shownAbs.domain_tags && shownAbs.domain_tags.length > 0 && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Tags: {shownAbs.domain_tags.join(", ")}
+                  </p>
                 )}
                 <ul className="mt-3 list-disc space-y-1 pl-4 text-muted-foreground">
                   {shownAbs.constraints.map((c) => (
@@ -182,7 +245,7 @@ function Discover() {
               </div>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
-                Run it and Gemini writes the abstraction for your text.
+                Nothing yet. Run your text and Gemini writes the abstraction, marked unverified.
               </p>
             )}
           </section>
@@ -198,7 +261,11 @@ function Discover() {
               <p className="eyebrow mb-2">Latest run</p>
               <TraceMini run={run} />
               <div className="mt-3 flex gap-4 text-sm">
-                <Link to="/app/trace" className="text-primary hover:underline">
+                <Link
+                  to="/app/trace"
+                  search={{ demo: false }}
+                  className="text-primary hover:underline"
+                >
                   Agent trace
                 </Link>
                 <Link to="/app/results" className="text-primary hover:underline">

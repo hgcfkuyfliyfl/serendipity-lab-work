@@ -25,7 +25,7 @@ async function gemini<T>(
   key: string,
   system: string,
   user: string,
-  ms = 45000,
+  ms = 25000,
   modelIdx = 0,
 ): Promise<T> {
   const body = JSON.stringify({
@@ -34,8 +34,8 @@ async function gemini<T>(
     generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
   });
   let res: Response | null = null;
-  // Slow or flaky connections fail with "fetch failed" before Google answers: retry twice.
-  for (let attempt = 0; attempt < 3 && !res; attempt++) {
+  // Slow or flaky connections fail with "fetch failed" before Google answers: retry once.
+  for (let attempt = 0; attempt < 2 && !res; attempt++) {
     try {
       res = await fetch(urlFor(MODELS[modelIdx] ?? MODELS[0]!), {
         method: "POST",
@@ -44,7 +44,7 @@ async function gemini<T>(
         signal: AbortSignal.timeout(ms),
       });
     } catch (e) {
-      if (attempt === 2)
+      if (attempt === 1)
         throw new Error("Could not reach Google (slow or no connection)", { cause: e });
       await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
     }
@@ -152,6 +152,8 @@ export type CollideResult =
       dropped: { id: string; title: string; reason: string }[];
       /** false when the reviewer call failed, so scores and objections are missing */
       reviewed: boolean;
+      /** why the reviewer call failed, when it did */
+      reviewError?: string;
     }
   | { ok: false; reason: string };
 
@@ -190,10 +192,8 @@ export const findCollisions = createServerFn({ method: "POST" })
           field: g.field as Candidate["field"],
           tags: strs(g.tags, 3),
           mockScore: clamp(g.structural_score),
-          reviewerConfidence: 50,
           explanation: String(g.explanation),
           hypothesis: String(g.hypothesis),
-          reviewStatus: "plausible",
           source: { citation: "No source retrieved. Model-generated analogy.", passage: null },
           mapping: (g.mapping ?? [])
             .slice(0, 4)
@@ -211,6 +211,7 @@ export const findCollisions = createServerFn({ method: "POST" })
       if (base.length === 0) return { ok: false, reason: "Gemini returned no usable candidates" };
 
       let reviewed = true;
+      let reviewError = "";
       const rev = await gemini<{ reviews?: Review[] }>(
         key,
         REVIEW_PROMPT,
@@ -225,8 +226,9 @@ export const findCollisions = createServerFn({ method: "POST" })
             mapping: c.mapping,
           })),
         }),
-      ).catch(() => {
+      ).catch((e: unknown) => {
         reviewed = false;
+        reviewError = msg(e);
         return { reviews: [] as Review[] };
       });
 
@@ -254,7 +256,13 @@ export const findCollisions = createServerFn({ method: "POST" })
         kept.push(c);
       }
       kept.sort((a, b) => b.mockScore - a.mockScore);
-      return { ok: true, candidates: kept, dropped, reviewed };
+      return {
+        ok: true,
+        candidates: kept,
+        dropped,
+        reviewed,
+        ...(reviewed ? {} : { reviewError }),
+      };
     } catch (e) {
       return { ok: false, reason: msg(e) };
     }

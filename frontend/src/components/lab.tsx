@@ -2,7 +2,7 @@ import { Bookmark, BookmarkCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { actions, useStore } from "@/lib/store";
-import type { Heresy, MatchedOn, ReviewStatus } from "@/lib/types";
+import type { Candidate, Heresy, MatchedOn, ReviewStatus } from "@/lib/types";
 
 export function Logo({ className, inverted }: { className?: string; inverted?: boolean }) {
   return (
@@ -85,9 +85,9 @@ export function FieldTag({ field }: { field: string }) {
 }
 
 const reviewMap: Record<ReviewStatus, { label: string; cls: string }> = {
-  supported: { label: "Reviewer: supported", cls: "text-forest border-forest/40" },
-  plausible: { label: "Reviewer: plausible", cls: "text-ochre border-ochre/50" },
-  contested: { label: "Reviewer: contested", cls: "text-terracotta border-terracotta/50" },
+  supported: { label: "Model reviewer: supported", cls: "text-forest border-forest/40" },
+  plausible: { label: "Model reviewer: plausible", cls: "text-ochre border-ochre/50" },
+  contested: { label: "Model reviewer: contested", cls: "text-terracotta border-terracotta/50" },
 };
 export function ReviewBadge({ status }: { status: ReviewStatus }) {
   const r = reviewMap[status];
@@ -110,6 +110,28 @@ export function HeresyBadge({ level }: { level: Heresy }) {
       title="Topical distance from your home field"
     >
       {h.label}
+    </span>
+  );
+}
+
+/** Where a result really comes from. Replaces vague words like "verified" or "high confidence". */
+export function ProvenanceChip({ c }: { c: Candidate }) {
+  const grounded = !!c.source.passage && c.mapping.length > 0;
+  const label = c.fixture
+    ? "Cached fixture · real passage and DOI · placeholder scores"
+    : c.live
+      ? grounded
+        ? "Live model output"
+        : "Live model output · no source retrieved · not grounded"
+      : "Source not retrieved";
+  return (
+    <span
+      className={cn(
+        "rounded-sm border px-1.5 py-0.5 text-[11px]",
+        grounded ? "border-forest/40 text-forest" : "border-terracotta/50 text-terracotta",
+      )}
+    >
+      {label}
     </span>
   );
 }

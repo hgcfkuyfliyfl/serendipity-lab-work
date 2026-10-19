@@ -6,8 +6,8 @@ import {
   advanceRun,
   getDemoRun,
   registerLive,
-  selectCandidates,
-  isHeroText,
+  excludedFields,
+  isHeroInput,
   startCollisionRun,
   startFixtureRun,
   STEP_MS,
@@ -57,20 +57,41 @@ const stop = () => {
   timer = null;
 };
 
-/** Mark the retrieval step failed and skip everything after it. */
-function failRun(run: Run, at = 2): Run {
+/** Mark one step failed and skip everything after it. */
+function failRun(run: Run, at: number, message: string): Run {
   const trace = run.trace.map((e, i) =>
     i === at
-      ? {
-          ...e,
-          state: "failed" as const,
-          message: "Retrieval timed out (simulated). Retry, or open the cached demo run.",
-        }
+      ? { ...e, state: "failed" as const, message }
       : i > at
         ? { ...e, state: "skipped" as const }
         : e,
   );
   return { ...run, trace, status: "failed" };
+}
+
+const LIVE_TIMEOUT_MS = 100000;
+/** Plain-English version of a Gemini failure. */
+const explain = (reason: string) =>
+  /HTTP 40[13]/.test(reason)
+    ? "The server's Gemini key was rejected."
+    : /HTTP 429/.test(reason)
+      ? "Gemini's quota is used up for now."
+      : /slow or no connection|fetch/i.test(reason)
+        ? "Could not reach Google (slow or no connection)."
+        : reason;
+
+/** Stop a pending live run with an error. No unrelated results are put in its place. */
+function failLive(id: string, why: string) {
+  const run = state.run;
+  if (!run || run.id !== id || run.liveStage !== "pending") return;
+  stop();
+  set({
+    run: {
+      ...failRun(run, 1, `Live search failed. ${why}`),
+      liveStage: "failed",
+      liveNote: `Live search failed. ${why} No results are shown, because none exist for your text. Retry, or play the cached hero demo (a different problem).`,
+    },
+  });
 }
 
 /** Play the frozen hero fixture one event at a time, using its ts deltas. */
@@ -83,7 +104,11 @@ function replayHero(input: CollisionInput, fail: boolean) {
     if (!cur || cur.id !== started.id) return;
     let next = advanceRun(cur);
     if (fail && next.trace.findIndex((e) => e.state === "running") === failAt) {
-      next = failRun(next, failAt);
+      next = failRun(
+        next,
+        failAt,
+        "Retrieval timed out (simulated). Retry, or open the cached demo run.",
+      );
       set({ simulateFailure: false });
     }
     set({ run: next });
@@ -99,14 +124,10 @@ export const actions = {
   run: (input: CollisionInput) => {
     stop();
     const fail = state.simulateFailure;
-    if (isHeroText(input.text)) return replayHero(input, fail);
+    if (isHeroInput(input)) return replayHero(input, fail);
     const started = { ...advanceRun(startCollisionRun(input)), liveStage: "pending" as const };
     set({ run: started });
-    const { excluded } = selectCandidates(
-      input.homeFields,
-      input.serendipity.excludedAdjacent,
-      input.serendipity.rankDepth,
-    );
+    const excluded = excludedFields(input.homeFields);
     findCollisions({
       data: {
         text: input.text,
@@ -117,73 +138,53 @@ export const actions = {
     })
       .then((r) => {
         const run = state.run;
-        if (!run || run.id !== started.id) return;
-        if (r.ok) {
-          const cands = r.candidates.map((c) => ({
-            ...c,
-            problem: run.input.text,
-            ...(run.abstraction ? { abstraction: run.abstraction } : {}),
-          }));
-          registerLive(cands);
-          const n = cands.length;
-          const trace = run.trace.map((e, i) =>
-            i === 2
+        if (!run || run.id !== started.id || run.liveStage !== "pending") return;
+        if (!r.ok) return failLive(started.id, `${explain(r.reason)}`);
+        const cands = r.candidates.map((c) => ({
+          ...c,
+          problem: run.input.text,
+          ...(run.abstraction ? { abstraction: run.abstraction } : {}),
+        }));
+        registerLive(cands);
+        const n = cands.length;
+        const trace = run.trace.map((e, i) =>
+          i === 1
+            ? {
+                ...e,
+                message: `Gemini proposed ${n + r.dropped.length} analogous mechanisms outside ${excluded.join(", ")}. No corpus was searched`,
+              }
+            : i === 2
               ? {
                   ...e,
-                  message: `Gemini proposed ${n + r.dropped.length} analogous mechanisms outside ${excluded.join(", ")}`,
+                  message: r.reviewed
+                    ? `Reviewer challenged ${n + r.dropped.length} candidates; ${r.dropped.length} dropped`
+                    : "The reviewer call failed, so these candidates are NOT reviewed",
                 }
               : i === 3
-                ? {
-                    ...e,
-                    message: `Reviewer challenged ${n + r.dropped.length} candidates; ${r.dropped.length} dropped`,
-                  }
-                : i === 5
-                  ? {
-                      ...e,
-                      message: `Ranked ${n} candidates by model-estimated structural similarity`,
-                    }
-                  : e,
-          );
-          set({
-            run: {
-              ...run,
-              trace,
-              candidates: cands,
-              resultIds: cands.map((c) => c.id),
-              rejected: r.dropped.map((d) => ({ id: d.id, title: d.title, reason: d.reason })),
-              liveStage: "done",
-              ...(r.reviewed
-                ? {}
-                : {
-                    liveNote:
-                      "The skeptical reviewer call failed (slow or no connection), so these candidates are NOT reviewed. Retry the run to get objections.",
-                  }),
-            },
-          });
-        } else
-          set({
-            run: {
-              ...run,
-              liveStage: "failed",
-              liveNote: `Live search failed (${r.reason}). Showing the cached demo candidates.`,
-            },
-          });
+                ? { ...e, message: `Ranked ${n} candidates by the model's own estimate` }
+                : e,
+        );
+        set({
+          run: {
+            ...run,
+            trace,
+            candidates: cands,
+            resultIds: cands.map((c) => c.id),
+            rejected: r.dropped.map((d) => ({ id: d.id, title: d.title, reason: d.reason })),
+            liveStage: "done",
+            ...(r.reviewed
+              ? {}
+              : {
+                  liveNote: `The skeptical reviewer call failed (${explain(r.reviewError ?? "unknown error")}), so these candidates are NOT reviewed. Retry the run to get objections.`,
+                }),
+          },
+        });
       })
-      .catch(() => {
-        const run = state.run;
-        if (run?.id === started.id)
-          set({
-            run: {
-              ...run,
-              liveStage: "failed",
-              liveNote: "Live search failed. Showing the cached demo candidates.",
-            },
-          });
-      });
+      .catch(() => failLive(started.id, "Could not reach the server."));
     abstractProblem({ data: { text: input.text } })
       .then((r) => {
-        if (!state.run || state.run.id !== started.id) return;
         const run = state.run;
+        if (!run || run.id !== started.id) return;
         if (r.ok) {
           const trace = run.trace.map((e, i) =>
             i === 0
@@ -196,25 +197,36 @@ export const actions = {
           set({
             run: { ...run, trace, abstraction: r.abstraction, abstractionNote: "Gemini (live)" },
           });
-        } else set({ run: { ...run, abstractionNote: `Cached example (${r.reason})` } });
+        } else
+          set({
+            run: { ...run, abstractionNote: `Abstraction unavailable: ${explain(r.reason)}` },
+          });
       })
       .catch(() => {
         if (state.run?.id === started.id)
-          set({ run: { ...state.run, abstractionNote: "Cached example (Gemini unreachable)" } });
+          set({
+            run: { ...state.run, abstractionNote: "Abstraction unavailable: Gemini unreachable" },
+          });
       });
+    setTimeout(() => failLive(started.id, "It took longer than 100 seconds."), LIVE_TIMEOUT_MS);
     timer = setInterval(() => {
-      if (!state.run) return;
-      // Hold at retrieval until the live model answers (unless a failure is being simulated)
+      const cur = state.run;
+      if (!cur || cur.id !== started.id) return stop();
+      // Hold at candidate generation until Gemini answers (unless a failure is being simulated)
       if (
         !fail &&
-        state.run.liveStage === "pending" &&
-        state.run.trace.findIndex((e) => e.state === "running") === 2
+        cur.liveStage === "pending" &&
+        cur.trace.findIndex((e) => e.state === "running") === 1
       )
         return;
-      let next = advanceRun(state.run);
-      if (fail && next.trace[2].state === "running") {
-        next = failRun(next);
-        set({ simulateFailure: false }); // fail once, so Retry succeeds deterministically
+      let next = advanceRun(cur);
+      if (fail && next.trace[1]?.state === "running") {
+        next = failRun(
+          next,
+          1,
+          "Retrieval timed out (simulated). Retry, or open the cached demo run.",
+        );
+        set({ simulateFailure: false });
       }
       set({ run: next });
       if (next.status !== "running") stop();

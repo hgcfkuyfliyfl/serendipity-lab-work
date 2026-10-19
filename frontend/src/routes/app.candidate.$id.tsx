@@ -10,13 +10,13 @@ import {
   HeresyBadge,
   MatchedChip,
   MockTag,
+  ProvenanceChip,
   ReviewBadge,
   SaveButton,
   ScoreBar,
 } from "@/components/lab";
 import { HERO_ABSTRACTION, HERO_TEXT } from "@/lib/mock-data";
 import { getCandidate, liveSiblings } from "@/lib/service";
-import { CANDIDATES } from "@/lib/mock-data";
 import { HERO_CANDIDATES } from "@/mock/hero";
 import { useStore } from "@/lib/store";
 
@@ -59,7 +59,7 @@ function Inspector() {
     ? (c.abstraction ??
       run?.abstraction ?? { functional_problem: "Abstraction unavailable for this run." })
     : HERO_ABSTRACTION;
-  const others = c.fixture ? HERO_CANDIDATES : c.live ? liveSiblings(c.id) : CANDIDATES;
+  const others = c.fixture ? HERO_CANDIDATES : liveSiblings(c.id);
 
   return (
     <>
@@ -76,13 +76,7 @@ function Inspector() {
             {c.reviewStatus && <ReviewBadge status={c.reviewStatus} />}
             {c.heresy && <HeresyBadge level={c.heresy} />}
             {c.matchedOn && <MatchedChip on={c.matchedOn} />}
-            <MockTag>
-              {c.live
-                ? "Live model output"
-                : c.fixture
-                  ? "Fixture: placeholder scores"
-                  : "Demo data"}
-            </MockTag>
+            <ProvenanceChip c={c} />
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -179,7 +173,7 @@ function Inspector() {
 
             <section>
               <h2 className="text-xl">
-                Concept mapping {!c.fixture && <MockTag>Illustrative</MockTag>}
+                Concept mapping {!c.fixture && <MockTag>Model-written, no source</MockTag>}
               </h2>
               <div className="mt-3 overflow-x-auto rounded-md border border-border">
                 <table className="w-full text-sm">

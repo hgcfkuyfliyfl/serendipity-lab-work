@@ -1,0 +1,10 @@
+fastapi==0.120.4
+uvicorn==0.38.0
+pydantic==2.13.5
+httpx==0.28.1
+jsonschema==4.26.0
+PyYAML==6.0.3
+python-dotenv==1.2.2
+
+# Tests
+pytest==8.4.2

@@ -63,8 +63,15 @@ class _GeminiProvider:
             },
         }
 
-        url = f"{self.base_url.rstrip('/')}/models/{self.model}:generateContent?key={self.api_key}"
-        response = httpx.post(url, json=payload, timeout=self.timeout_s)
+        # The key goes in a header, never in the URL: query strings end up in
+        # proxy logs, error messages and tracebacks.
+        url = f"{self.base_url.rstrip('/')}/models/{self.model}:generateContent"
+        response = httpx.post(
+            url,
+            json=payload,
+            headers={"x-goog-api-key": self.api_key},
+            timeout=self.timeout_s,
+        )
         response.raise_for_status()
         body = response.json()
         if "candidates" not in body or not body["candidates"]:

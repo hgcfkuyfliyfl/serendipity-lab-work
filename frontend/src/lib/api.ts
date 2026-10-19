@@ -54,7 +54,7 @@ export interface ApiTraceEvent {
   step: TraceStep;
   message: string;
   ts: number;
-  meta?: { task?: string; cached?: boolean; attempt?: number; ms?: number };
+  meta?: { task?: string; cached?: boolean; attempt?: number; ms?: number; corpus?: string };
 }
 export interface ApiResultEvent {
   type: "result";
@@ -82,7 +82,12 @@ export const survivesDropRule = (r: ApiResultEvent) =>
   Array.isArray(r.mapping) &&
   r.mapping.length > 0;
 
-export function toCandidate(r: ApiResultEvent, runId: string, abstraction?: Abstraction): Candidate {
+export function toCandidate(
+  r: ApiResultEvent,
+  runId: string,
+  abstraction?: Abstraction,
+  corpusStub = false,
+): Candidate {
   const paper: NonNullable<Candidate["paper"]> = {};
   if (r.year !== undefined && r.year !== null) paper.year = r.year;
   if (r.venue) paper.venue = r.venue;
@@ -106,6 +111,7 @@ export function toCandidate(r: ApiResultEvent, runId: string, abstraction?: Abst
     ...(r.reviewer_note ? { reviewerNote: r.reviewer_note } : {}),
     reviewer: { useful: "", similar: [], assumptions: [], failure: [], next: [] },
     corpus: true,
+    ...(corpusStub ? { corpusStub: true } : {}),
     ...(abstraction ? { abstraction } : {}),
   };
 }

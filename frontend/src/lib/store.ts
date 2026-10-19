@@ -165,10 +165,12 @@ function runAgainstBackend(input: CollisionInput) {
 
   const trace: TraceEvent[] = [];
   const candidates: Candidate[] = [];
+  let corpusStub = false;
   const isCurrent = () => state.run?.id === started.id;
 
   const onTrace = (event: ApiTraceEvent) => {
     if (!isCurrent()) return;
+    if (event.meta?.corpus === "stub") corpusStub = true;
     trace.push(apiToTraceEvent(event, trace.length));
     const last = trace[trace.length - 1];
     if (last && event.step !== "done") last.state = "running";
@@ -181,7 +183,7 @@ function runAgainstBackend(input: CollisionInput) {
 
   const onResult = (event: ApiResultEvent) => {
     if (!isCurrent()) return;
-    const candidate = apiToCandidate(event, started.id, state.run?.abstraction);
+    const candidate = apiToCandidate(event, started.id, state.run?.abstraction, corpusStub);
     candidates.push(candidate);
     registerLive([candidate]);
     set({

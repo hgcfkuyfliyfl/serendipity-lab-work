@@ -120,9 +120,11 @@ export function ProvenanceChip({ c }: { c: Candidate }) {
   const label = c.fixture
     ? "Cached fixture · real passage and DOI · placeholder scores"
     : c.corpus
-      ? grounded
-        ? "Corpus retrieval · passage quoted from the retrieved paper"
-        : "Corpus retrieval · no passage returned · not grounded"
+      ? !grounded
+        ? "Corpus retrieval · no passage returned · not grounded"
+        : c.corpusStub
+          ? "Backend run · placeholder corpus · passage is not a verbatim quote"
+          : "Corpus retrieval · passage quoted from the retrieved paper"
       : c.live
         ? grounded
           ? "Live model output"

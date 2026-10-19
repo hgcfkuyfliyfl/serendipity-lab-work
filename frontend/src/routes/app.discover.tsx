@@ -5,6 +5,7 @@ import { btn, Chip, MockTag, PageHeader } from "@/components/lab";
 import { TraceMini } from "@/components/trace";
 import { FIELDS, HERO_ABSTRACTION, HERO_TEXT, SAMPLE_SCENARIOS } from "@/lib/mock-data";
 import { FIXED } from "@/lib/serendipity";
+import { isApiConfigured } from "@/lib/api";
 import { actions, useStore } from "@/lib/store";
 import { isHeroInput } from "@/lib/service";
 import type { Field } from "@/lib/types";
@@ -66,7 +67,11 @@ function Discover() {
       <PageHeader
         eyebrow="Discover"
         title="Find Cross-Domain Collisions"
-        aside={<MockTag>{isHero ? "Cached fixture" : "Live model, unverified"}</MockTag>}
+        aside={
+          <MockTag>
+            {isHero ? "Cached fixture" : isApiConfigured() ? "Live backend" : "Live model, unverified"}
+          </MockTag>
+        }
       >
         Describe your research problem in plain terms. The agent strips the domain words, then looks
         for problems with the same structure in other fields.
@@ -191,6 +196,14 @@ function Discover() {
                 <strong className="font-medium">Cached fixture.</strong> Running this replays a
                 frozen run. Real papers, passages and DOIs; placeholder scores. No live model and no
                 corpus are used.
+              </>
+            ) : isApiConfigured() ? (
+              <>
+                <strong className="font-medium">Live backend run.</strong> This text has no fixture.
+                Running it sends your text to the team&rsquo;s API, which abstracts it, searches the
+                corpus with your home field excluded, and quotes a passage from each paper it
+                returns. Anything without a passage and a mapping is dropped. If the run fails you
+                get an error, not the hero results.
               </>
             ) : (
               <>

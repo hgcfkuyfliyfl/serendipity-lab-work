@@ -237,7 +237,10 @@ function Inspector() {
           ) : (
             <>
               <div className="mt-3 flex gap-6">
-                <ScoreBar value={c.mockScore} label={c.live ? "Model estimate" : "Demo score"} />
+                <ScoreBar
+                  value={c.mockScore}
+                  label={c.live ? "Model estimate" : c.corpus ? "Structural score" : "Demo score"}
+                />
                 {c.reviewerConfidence !== undefined && (
                   <ScoreBar value={c.reviewerConfidence} label="Confidence" />
                 )}

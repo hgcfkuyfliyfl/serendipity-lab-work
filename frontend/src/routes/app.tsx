@@ -14,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/lab";
 import { Toaster } from "@/components/ui/sonner";
+import { isApiConfigured } from "@/lib/api";
 import { auth, useUser } from "@/lib/auth";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -100,8 +101,9 @@ function AppLayout() {
         </nav>
         {!collapsed && (
           <p className="m-4 rounded-md border border-ink-line p-3 font-mono text-[10px] leading-relaxed text-ink-muted">
-            PROTOTYPE · Runs are written live by Gemini and are not verified. No paper corpus is
-            connected.
+            {isApiConfigured()
+              ? "PROTOTYPE · Runs come from the team's backend. Scores are not validated against a baseline."
+              : "PROTOTYPE · Runs are written live by Gemini and are not verified. No paper corpus is connected."}
           </p>
         )}
       </aside>

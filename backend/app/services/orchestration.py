@@ -17,16 +17,28 @@ class OrchestrationService:
         self.gateway = LLMGateway()
         self.retrieval = RetrievalService()
 
-    def _trace(self, step: str, message: str, *, task: str | None = None, cached: bool = False, attempt: int = 1, ms: int | None = None) -> dict[str, Any]:
+    def _trace(
+        self,
+        step: str,
+        message: str,
+        *,
+        task: str | None = None,
+        cached: bool = False,
+        attempt: int = 1,
+        ms: int | None = None,
+        corpus: str | None = None,
+    ) -> dict[str, Any]:
         event = {
             "type": "trace",
             "step": step,
             "message": message,
             "ts": int(time.time()),
         }
-        meta = {"task": task or step, "cached": cached, "attempt": attempt}
+        meta: dict[str, Any] = {"task": task or step, "cached": cached, "attempt": attempt}
         if ms is not None:
             meta["ms"] = ms
+        if corpus is not None:
+            meta["corpus"] = corpus
         event["meta"] = meta
         return event
 
@@ -128,13 +140,22 @@ class OrchestrationService:
             candidate_pool.extend(self.retrieval.search(query, abstraction.data, home_fields=home_fields))
         candidate_pool = self._dedupe_candidates(candidate_pool)
 
+        # Say plainly which corpus answered. The placeholder corpus is a handful of
+        # entries with paraphrased abstracts, so the UI must not present them as quotes.
+        corpus_kind = "stub" if any(c.get("corpus") == "stub" for c in candidate_pool) else "index"
+        corpus_note = (
+            f" Searched the placeholder corpus ({len(self.retrieval.corpus)} entries), not a real index."
+            if corpus_kind == "stub"
+            else ""
+        )
         trace.append(
             self._trace(
                 "retrieving",
-                f"Retrieved {len(candidate_pool)} candidate analogs.",
+                f"Retrieved {len(candidate_pool)} candidate analogs.{corpus_note}",
                 task="retrieval",
                 cached=False,
                 attempt=1,
+                corpus=corpus_kind,
             )
         )
 
@@ -142,9 +163,19 @@ class OrchestrationService:
         results: list[dict[str, Any]] = []
         dropped: list[dict[str, Any]] = []
 
+        reviewed_ids: set[str] = set()
         for loop_index in range(3):
-            round_candidates = candidate_pool if loop_index == 0 else self._dedupe_candidates(candidate_pool)
+            # Only candidates that have not been through the reviewer yet. Without this the
+            # same paper is reviewed once per loop and appears several times in the results.
+            round_candidates = [
+                candidate
+                for candidate in self._dedupe_candidates(candidate_pool)
+                if str(candidate.get("id", candidate.get("title", ""))) not in reviewed_ids
+            ]
+            if not round_candidates:
+                break
             for candidate in round_candidates:
+                reviewed_ids.add(str(candidate.get("id", candidate.get("title", ""))))
                 review = await self.gateway.arun(
                     "skeptic",
                     {

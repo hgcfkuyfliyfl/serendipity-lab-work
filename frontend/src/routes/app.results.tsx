@@ -112,7 +112,9 @@ function Results() {
               ? "Live model output, not verified"
               : all[0]?.fixture
                 ? "Placeholder scores"
-                : "Scores are demo values"}
+                : all[0]?.corpus
+                  ? "Structural scores, not validated"
+                  : "Scores are demo values"}
           </MockTag>
         }
       >
@@ -311,7 +313,9 @@ function Results() {
                           {c.source.passage
                             ? c.fixture
                               ? "Verbatim source passage"
-                              : "Source passage (illustrative)"
+                              : c.corpus && !c.corpusStub
+                                ? "Passage from the retrieved paper"
+                                : "Source passage (illustrative)"
                             : "Evidence incomplete"}
                         </span>
                         {c.tags.map((t) => (
@@ -323,7 +327,13 @@ function Results() {
                       <ScoreBar
                         value={c.mockScore}
                         label={
-                          c.live ? "Model estimate" : c.fixture ? "Placeholder score" : "Demo score"
+                          c.live
+                            ? "Model estimate"
+                            : c.fixture
+                              ? "Placeholder score"
+                              : c.corpus
+                                ? "Structural score"
+                                : "Demo score"
                         }
                       />
                       {c.reviewerConfidence !== undefined && (
